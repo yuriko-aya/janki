@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Member - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<h1>Delete Member</h1>
+
+<div style="background-color: #fff3cd; padding: 1.5rem; border-radius: 4px; margin-top: 2rem; border-left: 4px solid #ffc107;">
+    <p><strong>Warning:</strong> Are you sure you want to delete <strong>{{ object.name }}</strong> from {{ object.team.name }}?</p>
+    <p style="margin-top: 1rem; color: #666;">This will also delete all associated scores for this member. This action cannot be undone.</p>
+</div>
+
+<form method="post" style="margin-top: 2rem;">
+    {% csrf_token %}
+    <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-danger">Yes, Delete Member</button>
+        <a href="{% url 'teams:member_list' slug=object.team.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+    </div>
+</form>
+{% endblock %}

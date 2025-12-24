@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ team.name }} - All Sessions - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>{{ team.name }} - All Sessions</h1>
+    <div>
+        <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60;">+ Submit New Session</a>
+        <a href="{% url 'teams:member_list' slug=team.slug %}" class="btn" style="background-color: #95a5a6; margin-left: 0.5rem;">← Back to Members</a>
+    </div>
+</div>
+
+{% if scores %}
+    {% regroup scores by session_id as session_list %}
+    
+    <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <p style="margin-bottom: 1.5rem; color: #7f8c8d;">
+            Total sessions: <strong>{{ session_list|length }}</strong> | 
+            Total score entries: <strong>{{ scores|length }}</strong>
+        </p>
+        
+        {% for session in session_list %}
+            <div style="margin-bottom: 2rem; padding: 1rem; border: 1px solid #ecf0f1; border-radius: 4px; background-color: #f9f9f9;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0; color: #2c3e50;">
+                        Session: <span style="font-family: monospace; color: #3498db;">{{ session.grouper }}</span>
+                    </h3>
+                    <div>
+                        {% if session.list|length == 4 %}
+                            <span style="background-color: #27ae60; color: white; padding: 4px 12px; border-radius: 3px; font-size: 0.9rem; margin-right: 0.5rem;">
+                                ✓ Complete
+                            </span>
+                            <a href="{% url 'scores:session_edit' team_slug=team.slug session_id=session.grouper %}" 
+                               class="btn" 
+                               style="background-color: #3498db; font-size: 0.9rem; padding: 0.4rem 1rem;">
+                                Edit Session
+                            </a>
+                        {% else %}
+                            <span style="background-color: #e74c3c; color: white; padding: 4px 12px; border-radius: 3px; font-size: 0.9rem;">
+                                ⚠ Incomplete ({{ session.list|length }}/4 scores)
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <table style="width: 100%;">
+                    <thead>
+                        <tr style="background-color: #ecf0f1;">
+                            <th style="padding: 0.5rem; text-align: left;">Member</th>
+                            <th style="padding: 0.5rem; text-align: right;">Raw Score</th>
+                            <th style="padding: 0.5rem; text-align: center;">Placement</th>
+                            <th style="padding: 0.5rem; text-align: center;">Chombo</th>
+                            <th style="padding: 0.5rem; text-align: left;">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for score in session.list %}
+                            <tr>
+                                <td style="padding: 0.5rem;">
+                                    <strong>{{ score.member.name }}</strong>
+                                </td>
+                                <td style="padding: 0.5rem; text-align: right; font-family: monospace;">
+                                    {{ score.score }}
+                                </td>
+                                <td style="padding: 0.5rem; text-align: center;">
+                                    {% if score.placement %}
+                                        <span style="
+                                            display: inline-block;
+                                            padding: 2px 8px;
+                                            border-radius: 3px;
+                                            font-weight: bold;
+                                            {% if score.placement == 1 %}background-color: #ffd700; color: #000;
+                                            {% elif score.placement == 2 %}background-color: #c0c0c0; color: #000;
+                                            {% elif score.placement == 3 %}background-color: #cd7f32; color: #fff;
+                                            {% else %}background-color: #95a5a6; color: #fff;{% endif %}
+                                        ">
+                                            {% if score.placement == 1 %}1st
+                                            {% elif score.placement == 2 %}2nd
+                                            {% elif score.placement == 3 %}3rd
+                                            {% else %}4th{% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: #95a5a6;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; text-align: center;">
+                                    {% if score.chombo > 0 %}
+                                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">
+                                            {{ score.chombo }}x
+                                        </span>
+                                    {% else %}
+                                        <span style="color: #95a5a6;">0</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.5rem; color: #7f8c8d; font-size: 0.9rem;">
+                                    {% if score.session_date %}
+                                        {{ score.session_date }}
+                                    {% else %}
+                                        {{ score.created_at|date:"Y-m-d" }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+    </div>
+    
+    {% if is_paginated %}
+        <div style="margin-top: 2rem; text-align: center;">
+            <div style="display: inline-flex; gap: 0.5rem;">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Previous</a>
+                {% endif %}
+                
+                <span style="padding: 0.5rem 1rem; background-color: #3498db; color: white; border-radius: 4px;">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Last</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+    
+{% else %}
+    <div style="text-align: center; padding: 3rem; background-color: white; border-radius: 4px;">
+        <p style="margin-bottom: 1rem; font-size: 1.1rem; color: #7f8c8d;">No sessions recorded yet.</p>
+        <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60;">Submit Your First Session</a>
+    </div>
+{% endif %}
+
+{% endblock %}

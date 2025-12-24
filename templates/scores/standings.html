@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load scores_filters %}
+
+{% block title %}{{ team.name }} Standings - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>{{ team.name }} - Standings</h1>
+    <div style="display: flex; gap: 1rem;">
+        <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white;">View Sessions</a>
+        <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Teams</a>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'accounts:login' %}" class="btn" style="background-color: #007bff; color: white;">Login</a>
+            <a href="{% url 'accounts:register' %}" class="btn" style="background-color: #28a745; color: white;">Register</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Month/Year Filter -->
+<div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+    <form method="get" style="display: flex; gap: 1rem; align-items: center;">
+        <label for="month" style="font-weight: bold;">Month:</label>
+        <select name="month" id="month" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            {% for m in months %}
+                <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                    {{ m|short_month_name }}
+                </option>
+            {% endfor %}
+        </select>
+        
+        <label for="year" style="font-weight: bold; margin-left: 1rem;">Year:</label>
+        <input type="number" name="year" id="year" value="{{ selected_year }}" min="2020" max="{{ current_year }}" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100px;">
+        
+        <button type="submit" class="btn" style="background-color: #3498db; color: white; padding: 0.5rem 1rem;">Filter</button>
+    </form>
+</div>
+
+{% if standings %}
+    <div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow-x: auto;">
+        <h2 style="margin-top: 0; margin-bottom: 1.5rem;">
+            Team Standings - {{ selected_month|month_name_filter }} {{ selected_year }}
+        </h2>
+        <table id="standingsTable">
+            <thead>
+                <tr>
+                    <th style="width: 60px; text-align: center;">Rank</th>
+                    <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
+                        Player Name <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="total" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
+                        Total Score <span class="sort-indicator">▼</span>
+                    </th>
+                    <th class="sortable" data-sort="games" style="text-align: right; width: 100px; cursor: pointer; user-select: none;">
+                        Games Played <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="average" style="text-align: right; width: 140px; cursor: pointer; user-select: none;">
+                        Average/Game <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="placement" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
+                        Avg Placement <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="chombo" style="text-align: center; width: 100px; cursor: pointer; user-select: none;">
+                        Chombo Count <span class="sort-indicator"></span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="standingsBody">
+                {% for member in standings %}
+                    <tr data-name="{{ member.name }}" 
+                        data-total="{{ member.monthly_total }}" 
+                        data-games="{{ member.monthly_games }}" 
+                        data-average="{{ member.monthly_average }}" 
+                        data-placement="{{ member.monthly_avg_placement|default:999 }}"
+                        data-chombo="{{ member.monthly_chombo_count }}">
+                        <td class="rank-cell" style="text-align: center;">
+                            <span style="
+                                display: inline-block;
+                                width: 36px;
+                                height: 36px;
+                                line-height: 36px;
+                                text-align: center;
+                                background-color: #3498db;
+                                color: white;
+                                border-radius: 50%;
+                                font-weight: bold;
+                            " class="rank-badge">
+                                {{ forloop.counter }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong style="font-size: 1.1rem;">{{ member.name }}</strong>
+                        </td>
+                        <td style="text-align: right; font-size: 1.1rem; font-weight: bold;">
+                            {{ member.monthly_total|floatformat:1 }}
+                        </td>
+                        <td style="text-align: right;">
+                            {{ member.monthly_games }}
+                        </td>
+                        <td style="text-align: right;">
+                            {{ member.monthly_average|floatformat:2 }}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if member.monthly_avg_placement > 0 %}
+                                {{ member.monthly_avg_placement|floatformat:2 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if member.monthly_chombo_count > 0 %}
+                                <span style="background-color: #e74c3c; color: white; padding: 4px 10px; border-radius: 3px; font-weight: bold;">
+                                    {{ member.monthly_chombo_count }}
+                                </span>
+                            {% else %}
+                                <span style="color: #95a5a6;">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 2rem; padding: 1rem; background-color: #ecf0f1; border-radius: 4px;">
+        <p style="margin: 0;"><strong>Total Players:</strong> {{ standings|length }}</p>
+        <p style="margin: 0.5rem 0 0 0;">
+            <a href="{% url 'scores:sessions' slug=team.slug %}?month={{ selected_month }}&year={{ selected_year }}" 
+               style="color: #3498db; text-decoration: none; font-weight: bold;">
+                → View Session Details
+            </a>
+        </p>
+    </div>
+{% else %}
+    <div style="text-align: center; padding: 3rem; background-color: white; border-radius: 4px;">
+        <p style="font-size: 1.1rem; color: #999;">No scores recorded for this month.</p>
+    </div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('standingsTable');
+    if (!table) return;
+    
+    const tbody = document.getElementById('standingsBody');
+    const headers = table.querySelectorAll('th.sortable');
+    let currentSort = { column: 'total', direction: 'desc' };
+    
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            
+            // Toggle direction if clicking same column, otherwise default to desc
+            if (currentSort.column === sortBy) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = sortBy;
+                // Total score and average default to desc, placement and chombo default to asc
+                currentSort.direction = (sortBy === 'placement' || sortBy === 'chombo') ? 'asc' : 'desc';
+            }
+            
+            sortTable(sortBy, currentSort.direction);
+            updateSortIndicators();
+        });
+    });
+    
+    function sortTable(column, direction) {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            let aVal = a.dataset[column];
+            let bVal = b.dataset[column];
+            
+            // Convert to numbers for numeric columns
+            if (column !== 'name') {
+                aVal = parseFloat(aVal) || 0;
+                bVal = parseFloat(bVal) || 0;
+            }
+            
+            if (aVal === bVal) return 0;
+            
+            if (direction === 'asc') {
+                return aVal > bVal ? 1 : -1;
+            } else {
+                return aVal < bVal ? 1 : -1;
+            }
+        });
+        
+        // Re-append rows in new order
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // Update rank badges and highlight
+        updateRankBadges();
+    }
+    
+    function updateRankBadges() {
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach((row, index) => {
+            const rankBadge = row.querySelector('.rank-badge');
+            const rank = index + 1;
+            
+            // Update rank number
+            if (rank === 1) {
+                rankBadge.textContent = '🥇';
+            } else if (rank === 2) {
+                rankBadge.textContent = '🥈';
+            } else if (rank === 3) {
+                rankBadge.textContent = '🥉';
+            } else {
+                rankBadge.textContent = rank;
+            }
+            
+            // Update row highlight
+            if (rank === 1) {
+                row.style.backgroundColor = '#fff3cd';
+            } else {
+                row.style.backgroundColor = '';
+            }
+        });
+    }
+    
+    function updateSortIndicators() {
+        headers.forEach(header => {
+            const indicator = header.querySelector('.sort-indicator');
+            if (header.dataset.sort === currentSort.column) {
+                indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+            } else {
+                indicator.textContent = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

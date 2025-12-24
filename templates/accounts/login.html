@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Login - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="margin-top: 40px;">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Login</h2>
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Username</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.username.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">Password</label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.password.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Cloudflare Turnstile -->
+                    <div class="mb-3">
+                        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="light"></div>
+                        {{ form.turnstile_token }}
+                        {% if form.turnstile_token.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.turnstile_token.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
+                </form>
+                
+                <hr style="margin: 1.5rem 0;">
+                
+                <p class="text-center mb-2">
+                    Don't have an account?
+                </p>
+                <a href="{% url 'accounts:register' %}" class="btn btn-secondary w-100">Create Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const tokenInput = document.querySelector('input[name="turnstile_token"]');
+            if (window.turnstile && window.turnstile.getResponse) {
+                tokenInput.value = window.turnstile.getResponse();
+            }
+        });
+    });
+</script>{% endblock %}

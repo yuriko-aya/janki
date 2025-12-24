@@ -1,0 +1,134 @@
+janki/
+├── .github/
+│   └── copilot-instructions.md      # AI agent development guidelines
+├── accounts/                         # User authentication app
+│   ├── migrations/
+│   ├── admin.py                     # Django admin customization
+│   ├── forms.py                     # TeamAdmin forms
+│   ├── models.py                    # TeamAdmin model
+│   ├── urls.py                      # App URL routing
+│   ├── views.py                     # Authentication views
+│   └── apps.py
+├── teams/                            # Team & Member management app
+│   ├── migrations/
+│   ├── admin.py                     # Team & Member admin
+│   ├── forms.py                     # TeamForm, MemberForm
+│   ├── models.py                    # Team, Member models
+│   ├── urls.py                      # Team app URLs
+│   ├── views.py                     # CRUD views for teams/members
+│   └── apps.py
+├── scores/                           # Score submission & aggregation app
+│   ├── migrations/
+│   ├── services/
+│   │   ├── __init__.py
+│   │   └── calculator.py            # Score calculation service layer
+│   ├── admin.py                     # RawScore & CalculatedScore admin
+│   ├── forms.py                     # Score submission forms
+│   ├── models.py                    # RawScore, CalculatedScore models
+│   ├── urls.py                      # Score app URLs
+│   ├── views.py                     # Score views (standings, submit)
+│   └── apps.py
+├── config/                           # Django project settings
+│   ├── settings.py                  # Django configuration (DB, apps, etc)
+│   ├── urls.py                      # Main URL routing
+│   ├── wsgi.py                      # WSGI application
+│   ├── asgi.py                      # ASGI application
+│   └── __init__.py
+├── templates/                        # HTML templates organized by app
+│   ├── base.html                    # Main layout template
+│   ├── accounts/
+│   ├── teams/
+│   │   ├── team_list.html           # Public list of teams
+│   │   ├── team_detail.html         # Team overview & standings
+│   │   ├── team_form.html           # Create/edit team
+│   │   ├── member_list.html         # Manage team members
+│   │   ├── member_form.html         # Add/edit member
+│   │   └── member_confirm_delete.html
+│   └── scores/
+│       ├── standings.html           # Public leaderboard
+│       └── session_submit.html      # Submit 4-player session
+├── static/                           # Static files (CSS, JS, images)
+│   ├── css/
+│   └── js/
+├── .env                             # Environment variables (local dev)
+├── db.sqlite3                       # SQLite database (generated)
+├── manage.py                        # Django management script
+├── requirements.txt                 # Python dependencies
+├── README.md                        # Complete user guide
+├── INSTALLATION.md                  # Quick start guide
+├── BUILD_SUMMARY.md                 # Detailed build report
+└── PROJECT_STRUCTURE.txt            # This file
+
+════════════════════════════════════════════════════════════════════════════════
+
+KEY FILES BREAKDOWN:
+
+Django Apps (3):
+  1. accounts/     - User & TeamAdmin relationships
+  2. teams/        - Team and Member CRUD
+  3. scores/       - Score submission & aggregation
+
+Models (5):
+  • Team (teams)
+  • Member (teams)
+  • TeamAdmin (accounts)
+  • RawScore (scores)
+  • CalculatedScore (scores)
+
+Views (11):
+  • Public: TeamList, TeamDetail, Standings
+  • Admin: TeamCreate/Update, MemberCreate/Update/Delete, SessionSubmit, RawScoreList
+
+Templates (9):
+  • Base layout with navigation & styling
+  • Team management pages (list, detail, forms)
+  • Member management pages
+  • Score leaderboard & submission forms
+
+Forms (5):
+  • TeamForm, MemberForm
+  • RawScoreForm, SessionScoresForm
+  • TeamAdminCreationForm
+
+Service Layer:
+  • scores/services/calculator.py - All business logic
+
+Configuration:
+  • config/settings.py - Django settings with environment variables
+  • config/urls.py - URL routing
+  • .env - Local development configuration
+
+Documentation:
+  • README.md - Complete user guide & architecture overview
+  • INSTALLATION.md - Quick start instructions
+  • BUILD_SUMMARY.md - Detailed build statistics
+  • .github/copilot-instructions.md - AI development guidelines
+
+════════════════════════════════════════════════════════════════════════════════
+
+COMMAND QUICK REFERENCE:
+
+# Initial setup
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+
+# Run development server
+python manage.py runserver
+
+# Django shell for testing
+python manage.py shell
+
+# Create migrations for model changes
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# Run tests
+python manage.py test
+
+# Collect static files (production)
+python manage.py collectstatic
+
+════════════════════════════════════════════════════════════════════════════════

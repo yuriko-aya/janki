@@ -1,0 +1,153 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  <link rel="stylesheet" href="{% static 'admin/css/login.css' %}">
+  <style>
+    .login-container {
+      max-width: 500px;
+      margin: 100px auto;
+      padding: 20px;
+    }
+    .login-form {
+      background: white;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .form-row {
+      margin-bottom: 15px;
+    }
+    .form-row label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    .form-row input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .form-row input:focus {
+      outline: none;
+      border-color: #417690;
+      box-shadow: 0 0 4px rgba(65, 118, 144, 0.3);
+    }
+    .submit-row {
+      margin-top: 30px;
+      text-align: center;
+    }
+    .submit-row input {
+      background-color: #417690;
+      color: white;
+      padding: 10px 30px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .submit-row input:hover {
+      background-color: #305c75;
+    }
+    .errorlist {
+      color: #ba2121;
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+    }
+    .errorlist li {
+      list-style-type: none;
+      margin: 5px 0;
+    }
+    .turnstile-wrapper {
+      margin: 20px 0;
+      text-align: center;
+    }
+  </style>
+{% endblock %}
+
+{% block title %}Django Administration - Login{% endblock %}
+
+{% block content_title %}<h1>Django Administration</h1>{% endblock %}
+
+{% block content %}
+<div class="login-container">
+  <div class="login-form">
+    {% if form.non_field_errors %}
+      <ul class="errorlist">
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="post" class="form">
+      {% csrf_token %}
+
+      <div class="form-row">
+        <label for="id_username">Username:</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <ul class="errorlist">
+            {% for error in form.username.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <div class="form-row">
+        <label for="id_password">Password:</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <ul class="errorlist">
+            {% for error in form.password.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <!-- Cloudflare Turnstile -->
+      <div class="turnstile-wrapper">
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="light"></div>
+        {{ form.turnstile_token }}
+        {% if form.turnstile_token.errors %}
+          <ul class="errorlist">
+            {% for error in form.turnstile_token.errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      <div class="submit-row">
+        <input type="submit" value="Log in">
+      </div>
+    </form>
+
+    <hr style="margin-top: 40px;">
+    <p style="text-align: center; color: #666; margin-top: 20px;">
+      <small>Protected by Cloudflare Turnstile</small>
+    </p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+      const tokenInput = document.querySelector('input[name="turnstile_token"]');
+      if (window.turnstile && window.turnstile.getResponse) {
+        tokenInput.value = window.turnstile.getResponse();
+      }
+    });
+  });
+</script>
+{% endblock %}

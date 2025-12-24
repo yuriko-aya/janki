@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Teams - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Teams</h1>
+    <div style="display: flex; gap: 1rem;">
+        {% if user.is_authenticated %}
+            <a href="{% url 'teams:team_create' %}" class="btn" style="background-color: #28a745; color: white;">+ Create Team</a>
+        {% else %}
+            <a href="{% url 'accounts:login' %}" class="btn" style="background-color: #007bff; color: white;">Login</a>
+            <a href="{% url 'accounts:register' %}" class="btn" style="background-color: #28a745; color: white;">Register</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if teams %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+        {% for team in teams %}
+            <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="margin-bottom: 1rem;">
+                    <a href="{% url 'teams:team_detail' slug=team.slug %}" style="color: #2c3e50; text-decoration: none;">
+                        {{ team.name }}
+                    </a>
+                </h2>
+                <p style="margin-bottom: 0.5rem;"><strong>Members:</strong> {{ team.members.count }}</p>
+                <p style="margin-bottom: 1rem;"><strong>Created:</strong> {{ team.created_at|date:"M d, Y" }}</p>
+                <div style="display: flex; gap: 0.5rem;">
+                    {% if user.is_authenticated and team.admin.user == user %}
+                    <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="flex: 1; text-align: center;">Manage</a>
+                    {% endif %}
+                    <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="flex: 1; text-align: center;">Standings</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div style="text-align: center; padding: 3rem; background-color: white; border-radius: 4px;">
+        <p style="margin-bottom: 1rem; font-size: 1.1rem;">No teams yet.</p>
+        {% if user.is_authenticated %}
+            <a href="{% url 'teams:team_create' %}" class="btn" style="background-color: #28a745; color: white;">Create Your First Team</a>
+        {% else %}
+            <p style="margin-bottom: 1.5rem;">Create an account to start tracking your Mahjong scores!</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="{% url 'accounts:login' %}" class="btn" style="background-color: #007bff; color: white;">Login</a>
+                <a href="{% url 'accounts:register' %}" class="btn" style="background-color: #28a745; color: white;">Register</a>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
+
+{% if is_paginated %}
+    <div style="text-align: center; margin-top: 2rem;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="btn" style="margin-right: 0.5rem;">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="btn" style="margin-right: 0.5rem;">Previous</a>
+        {% endif %}
+        
+        <span style="margin: 0 1rem;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="btn" style="margin-left: 0.5rem;">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="btn" style="margin-left: 0.5rem;">Last</a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

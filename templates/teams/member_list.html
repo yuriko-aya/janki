@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ team.name }} - Members - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>{{ team.name }} - Members</h1>
+    <div>
+        <a href="{% url 'teams:member_create' slug=team.slug %}" class="btn">+ Add Member</a>
+        <a href="{% url 'scores:rawscore_list' team_slug=team.slug %}" class="btn" style="background-color: #3498db; margin-left: 0.5rem;">View All Sessions</a>
+        <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60; margin-left: 0.5rem;">Submit Session</a>
+    </div>
+</div>
+
+{% if team.members.all %}
+    <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th style="text-align: right;">Total Score</th>
+                    <th style="text-align: right;">Games Played</th>
+                    <th style="text-align: right;">Avg/Game</th>
+                    <th style="text-align: right;">Avg Placement</th>
+                    <th style="text-align: center;">Chombo Count</th>
+                    <th style="width: 150px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in team.members.all|dictsort:"name" %}
+                    <tr>
+                        <td><strong>{{ member.name }}</strong></td>
+                        <td style="text-align: right;">
+                            {% if member.calculated_score %}
+                                {{ member.calculated_score.total }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if member.calculated_score %}
+                                {{ member.calculated_score.games_played }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if member.calculated_score %}
+                                {{ member.calculated_score.average_per_game|floatformat:2 }}
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if member.calculated_score and member.calculated_score.average_placement > 0 %}
+                                {{ member.calculated_score.average_placement|floatformat:2 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if member.calculated_score and member.calculated_score.chombo_count > 0 %}
+                                <span style="background-color: #e74c3c; color: white; padding: 4px 10px; border-radius: 3px; font-weight: bold;">
+                                    {{ member.calculated_score.chombo_count }}
+                                </span>
+                            {% else %}
+                                <span style="color: #95a5a6;">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'teams:member_update' pk=member.pk %}" class="btn" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">Edit</a>
+                            <a href="{% url 'teams:member_delete' pk=member.pk %}" class="btn btn-danger" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div style="text-align: center; padding: 3rem; background-color: white; border-radius: 4px;">
+        <p style="margin-bottom: 1rem; font-size: 1.1rem;">No members yet.</p>
+        <a href="{% url 'teams:member_create' slug=team.slug %}" class="btn">Add Your First Member</a>
+    </div>
+{% endif %}
+
+<div style="margin-top: 2rem; text-align: center;">
+    <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6;">← Back to Team</a>
+</div>
+{% endblock %}

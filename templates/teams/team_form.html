@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit {% else %}Create {% endif %}Team - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<h1>{% if form.instance.pk %}Edit Team{% else %}Create New Team{% endif %}</h1>
+
+<div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 700px; margin-top: 2rem;">
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="alert alert-error">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Team Name -->
+        <div class="form-group">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div style="color: #e74c3c; margin-top: 0.5rem;">
+                    {% for error in form.name.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Scoring Configuration -->
+        <div style="margin-top: 2rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #2c3e50;">Base Score Configuration</h3>
+            <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1rem;">Configure starting chips and target score for calculating base points.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    {{ form.start_point.label_tag }}
+                    {{ form.start_point }}
+                    <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.25rem;">Starting chips each player receives</p>
+                    {% if form.start_point.errors %}
+                        <div style="color: #e74c3c; margin-top: 0.5rem;">
+                            {% for error in form.start_point.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    {{ form.target_point.label_tag }}
+                    {{ form.target_point }}
+                    <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.25rem;">Baseline for score calculation: (raw - target)/1000</p>
+                    {% if form.target_point.errors %}
+                        <div style="color: #e74c3c; margin-top: 0.5rem;">
+                            {% for error in form.target_point.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Uma Configuration -->
+        <div style="margin-top: 1.5rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #2c3e50;">Uma (Placement Bonus) Configuration</h3>
+            <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1rem;">Set the bonus/penalty points for each placement.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    {{ form.uma_first.label_tag }}
+                    {{ form.uma_first }}
+                    {% if form.uma_first.errors %}
+                        <div style="color: #e74c3c; margin-top: 0.5rem;">
+                            {% for error in form.uma_first.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    {{ form.uma_second.label_tag }}
+                    {{ form.uma_second }}
+                    {% if form.uma_second.errors %}
+                        <div style="color: #e74c3c; margin-top: 0.5rem;">
+                            {% for error in form.uma_second.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    {{ form.uma_third.label_tag }}
+                    {{ form.uma_third }}
+                    {% if form.uma_third.errors %}
+                        <div style="color: #e74c3c; margin-top: 0.5rem;">
+                            {% for error in form.uma_third.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    {{ form.uma_fourth.label_tag }}
+                    {{ form.uma_fourth }}
+                    {% if form.uma_fourth.errors %}
+                        <div style="color: #e74c3c; margin-top: 0.5rem;">
+                            {% for error in form.uma_fourth.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chombo Configuration -->
+        <div style="margin-top: 1.5rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #2c3e50;">Chombo (Bankruptcy) Configuration</h3>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    {{ form.chombo_enabled }}
+                    {{ form.chombo_enabled.label_tag }}
+                </div>
+                <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 0.5rem;">When enabled, players marked with chombo receive a -30 point penalty.</p>
+                {% if form.chombo_enabled.errors %}
+                    <div style="color: #e74c3c; margin-top: 0.5rem;">
+                        {% for error in form.chombo_enabled.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn">{% if form.instance.pk %}Update Team{% else %}Create Team{% endif %}</button>
+            <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

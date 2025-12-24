@@ -1,0 +1,19 @@
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<div class="cf-turnstile" data-sitekey="{{ widget.site_key }}" data-theme="light"></div>
+<input type="hidden" name="cf-turnstile-response" id="cf-turnstile-response">
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const token = grecaptcha.getResponse();
+                if (!token) {
+                    e.preventDefault();
+                    alert('Please complete the Turnstile verification.');
+                } else {
+                    document.querySelector('input[name="turnstile_token"]').value = token;
+                }
+            });
+        }
+    });
+</script>

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit {% else %}Add {% endif %}Member - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<h1>{% if form.instance.pk %}Edit Member{% else %}Add New Member{% endif %}</h1>
+
+<div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 500px; margin-top: 2rem;">
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+            <div class="alert alert-error">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        {% for field in form %}
+            <div class="form-group">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.errors %}
+                    <div style="color: #e74c3c; margin-top: 0.5rem;">
+                        {% for error in field.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+        
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <button type="submit" class="btn">{% if form.instance.pk %}Update Member{% else %}Add Member{% endif %}</button>
+            <a href="{% url 'teams:member_list' slug=team.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
