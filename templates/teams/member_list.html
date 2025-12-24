@@ -32,7 +32,7 @@
                         <td><strong>{{ member.name }}</strong></td>
                         <td style="text-align: right;">
                             {% if member.calculated_score %}
-                                {{ member.calculated_score.total }}
+                                {{ member.calculated_score.total|floatformat:2 }}
                             {% else %}
                                 0
                             {% endif %}
