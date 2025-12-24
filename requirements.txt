@@ -3,3 +3,4 @@ django-environ==0.12.0
 psycopg2-binary==2.9.11
 djangorestframework==3.16.1
 gunicorn==21.2.0
+requests==2.31.0
