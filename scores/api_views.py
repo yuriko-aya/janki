@@ -16,6 +16,48 @@ from scores.api_serializers import SessionScoresSerializer
 from scores.authentication import BearerMultiTokenAuthentication
 
 
+class TeamExistsAPIView(APIView):
+    """
+    GET /api/teams/<slug>/exists/
+    
+    Public endpoint to check if a team exists.
+    No authentication required.
+    
+    Response (200 OK) - if team exists:
+    {
+        "exists": true,
+        "team": {
+            "name": "Team Alpha",
+            "slug": "team-alpha"
+        }
+    }
+    
+    Response (404 Not Found) - if team does not exist:
+    {
+        "exists": false,
+        "message": "Team not found"
+    }
+    """
+    authentication_classes = []  # No authentication required
+    permission_classes = []  # Public endpoint
+    
+    def get(self, request, team_slug):
+        try:
+            team = Team.objects.get(slug=team_slug)
+            return Response({
+                'exists': True,
+                'team': {
+                    'name': team.name,
+                    'slug': team.slug
+                }
+            }, status=status.HTTP_200_OK)
+        except Team.DoesNotExist:
+            return Response({
+                'exists': False,
+                'message': 'Team not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
 class ValidateTokenAPIView(APIView):
     """
     GET /api/validate-token/
