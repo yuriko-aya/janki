@@ -4,6 +4,7 @@ All API endpoints require bearer token authentication.
 """
 from django.urls import path
 from scores.api_views import (
+    ValidateTokenAPIView,
     SessionSubmitAPIView,
     SessionUpdateAPIView,
     SessionDeleteAPIView
@@ -12,6 +13,11 @@ from scores.api_views import (
 app_name = 'api'
 
 urlpatterns = [
+    # Token validation
+    path('validate-token/', 
+         ValidateTokenAPIView.as_view(), 
+         name='validate_token'),
+    
     # Session management endpoints
     path('teams/<slug:team_slug>/sessions/', 
          SessionSubmitAPIView.as_view(), 

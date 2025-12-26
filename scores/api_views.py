@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 
@@ -14,6 +13,57 @@ from teams.models import Team, Member
 from scores.models import RawScore
 from scores.services.calculator import submit_session_scores, update_session_scores
 from scores.api_serializers import SessionScoresSerializer
+from scores.authentication import BearerTokenAuthentication
+
+
+class ValidateTokenAPIView(APIView):
+    """
+    GET /api/validate-token/
+    
+    Validate that the provided bearer token is valid and active.
+    Returns user information if token is valid.
+    
+    Response (200 OK):
+    {
+        "valid": true,
+        "user": {
+            "id": 1,
+            "username": "admin",
+            "email": "admin@example.com"
+        },
+        "teams": [
+            {"id": 1, "name": "Team Alpha", "slug": "team-alpha"},
+            {"id": 2, "name": "Team Beta", "slug": "team-beta"}
+        ]
+    }
+    
+    Response (401 Unauthorized) - if token is invalid:
+    {
+        "detail": "Invalid token."
+    }
+    """
+    authentication_classes = [BearerTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Get all teams where user is admin
+        from accounts.models import TeamAdmin
+        team_admins = TeamAdmin.objects.filter(user=request.user).select_related('team')
+        teams = [{
+            'id': admin.team.id,
+            'name': admin.team.name,
+            'slug': admin.team.slug
+        } for admin in team_admins]
+        
+        return Response({
+            'valid': True,
+            'user': {
+                'id': request.user.id,
+                'username': request.user.username,
+                'email': request.user.email
+            },
+            'teams': teams
+        }, status=status.HTTP_200_OK)
 
 
 class SessionSubmitAPIView(APIView):
@@ -43,7 +93,7 @@ class SessionSubmitAPIView(APIView):
         "scores_created": 4
     }
     """
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [BearerTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def post(self, request, team_slug):
@@ -134,7 +184,7 @@ class SessionUpdateAPIView(APIView):
         "scores_updated": 4
     }
     """
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [BearerTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def put(self, request, team_slug, session_id):
@@ -220,7 +270,7 @@ class SessionDeleteAPIView(APIView):
         "scores_deleted": 4
     }
     """
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [BearerTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def delete(self, request, team_slug, session_id):

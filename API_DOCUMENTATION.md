@@ -22,14 +22,63 @@ The Mahjong Score Tracker provides a REST API for submitting, updating, and dele
 Include the token in the `Authorization` header:
 
 ```http
-Authorization: Token your-token-here
+Authorization: Bearer your-token-here
 ```
 
 ---
 
 ## API Endpoints
 
-### 1. Submit New Session
+### 1. Validate Token
+
+**Endpoint:** `GET /api/validate-token/`
+
+**Description:** Validate that the provided bearer token is valid and active. Returns user information and associated teams if token is valid.
+
+**Request Headers:**
+```http
+Authorization: Bearer your-token-here
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "valid": true,
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@example.com"
+  },
+  "teams": [
+    {
+      "id": 1,
+      "name": "Team Alpha",
+      "slug": "team-alpha"
+    },
+    {
+      "id": 2,
+      "name": "Team Beta",
+      "slug": "team-beta"
+    }
+  ]
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "detail": "Invalid token."
+}
+```
+
+**Use Cases:**
+- Verify token is still valid before making data requests
+- Get list of teams the authenticated user can manage
+- Health check for API integrations
+
+---
+
+### 2. Submit New Session
 
 **Endpoint:** `POST /api/teams/{team_slug}/sessions/`
 
@@ -37,7 +86,7 @@ Authorization: Token your-token-here
 
 **Request Headers:**
 ```http
-Authorization: Token your-token-here
+Authorization: Bearer your-token-here
 Content-Type: application/json
 ```
 
@@ -99,7 +148,7 @@ Content-Type: application/json
 
 ---
 
-### 2. Update Existing Session
+### 3. Update Existing Session
 
 **Endpoint:** `PUT /api/teams/{team_slug}/sessions/{session_id}/`
 
@@ -107,7 +156,7 @@ Content-Type: application/json
 
 **Request Headers:**
 ```http
-Authorization: Token your-token-here
+Authorization: Bearer your-token-here
 Content-Type: application/json
 ```
 
@@ -144,7 +193,7 @@ Content-Type: application/json
 
 ---
 
-### 3. Delete Session
+### 4. Delete Session
 
 **Endpoint:** `DELETE /api/teams/{team_slug}/sessions/{session_id}/delete/`
 
@@ -152,7 +201,7 @@ Content-Type: application/json
 
 **Request Headers:**
 ```http
-Authorization: Token your-token-here
+Authorization: Bearer your-token-here
 ```
 
 **Success Response (200 OK):**
@@ -183,9 +232,23 @@ API_BASE_URL = "https://your-domain.com/api"
 TOKEN = "your-token-here"
 
 headers = {
-    "Authorization": f"Token {TOKEN}",
+    "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
 }
+
+# Validate token first
+validate_response = requests.get(
+    f"{API_BASE_URL}/validate-token/",
+    headers=headers
+)
+
+if validate_response.status_code == 200:
+    data = validate_response.json()
+    print(f"Token valid for user: {data['user']['username']}")
+    print(f"Manages {len(data['teams'])} team(s)")
+else:
+    print("Invalid token!")
+    exit(1)
 
 # Submit new session
 payload = {
@@ -211,7 +274,7 @@ print(response.json())
 ### cURL Example
 ```bash
 curl -X POST https://your-domain.com/api/teams/my-team/sessions/ \
-  -H "Authorization: Token your-token-here" \
+  -H "Authorization: Bearer your-token-here" \
   -H "Content-Type: application/json" \
   -d '{
     "session_id": "2024-12-23-evening",
