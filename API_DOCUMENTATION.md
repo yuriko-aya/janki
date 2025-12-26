@@ -12,11 +12,24 @@ The Mahjong Score Tracker provides a REST API for submitting, updating, and dele
 ## Authentication
 
 ### Obtaining an API Token
-1. Log in to the Django admin panel at `/admin/`
-2. Navigate to **Users** or **Tokens** section
-3. Find your user account (must be a team admin)
-4. Generate or view your API token
+
+**Method 1: Via Authorization Link (Recommended)**
+1. Team admin receives an authorization link from the system administrator
+2. Visit the link while logged in: `/teams/<slug>/authorization/<access_code>/`
+3. The system will generate a new API token for you (using drf-multitokenauth)
+4. Copy the displayed token - it will only be shown once
 5. Use this token in the `Authorization` header for all API requests
+
+**Method 2: Via Django Admin Panel**
+1. Log in to the Django admin panel at `/admin/`
+2. Navigate to **Drf_Multitokenauth** → **Multi Tokens**
+3. Click **Add Multi Token**
+4. Select your user account
+5. Optionally add a name (e.g., "Mobile App", "Web Dashboard")
+6. Click **Save** - the token will be displayed once
+7. Copy the token immediately - it cannot be retrieved later
+
+**Note:** drf-multitokenauth supports multiple tokens per user. You can have different tokens for different applications or devices.
 
 ### Using the Token
 Include the token in the `Authorization` header:

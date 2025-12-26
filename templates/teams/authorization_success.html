@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Authorization Successful - {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-check-circle"></i> Authorization Successful
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <h5>Welcome to {{ team.name }}!</h5>
+                    <p class="lead">Your API authentication token has been successfully configured.</p>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> Token Status</h6>
+                        {% if token_created %}
+                            <p>A new API token has been created for your account.</p>
+                        {% else %}
+                            <p>Your existing API token has been updated.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-shield-exclamation"></i> Security Notice</h6>
+                        <p class="mb-0">Your API token is stored securely. You can now use it to access the {{ team.name }} API endpoints.</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'teams:team_detail' team.slug %}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left"></i> Back to Team
+                        </a>
+                        <a href="{% url 'teams:admin_list' team.slug %}" class="btn btn-secondary">
+                            <i class="bi bi-people"></i> Manage Team
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

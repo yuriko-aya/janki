@@ -1,6 +1,6 @@
 """
 REST API views for score submission.
-Uses bearer token authentication - tokens must be generated via Django admin.
+Uses drf-multitokenauth bearer token authentication - supports multiple tokens per user.
 """
 from rest_framework import status
 from rest_framework.views import APIView
@@ -13,7 +13,7 @@ from teams.models import Team, Member
 from scores.models import RawScore
 from scores.services.calculator import submit_session_scores, update_session_scores
 from scores.api_serializers import SessionScoresSerializer
-from scores.authentication import BearerTokenAuthentication
+from scores.authentication import BearerMultiTokenAuthentication
 
 
 class ValidateTokenAPIView(APIView):
@@ -42,7 +42,7 @@ class ValidateTokenAPIView(APIView):
         "detail": "Invalid token."
     }
     """
-    authentication_classes = [BearerTokenAuthentication]
+    authentication_classes = [BearerMultiTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
@@ -93,7 +93,7 @@ class SessionSubmitAPIView(APIView):
         "scores_created": 4
     }
     """
-    authentication_classes = [BearerTokenAuthentication]
+    authentication_classes = [BearerMultiTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def post(self, request, team_slug):
@@ -184,7 +184,7 @@ class SessionUpdateAPIView(APIView):
         "scores_updated": 4
     }
     """
-    authentication_classes = [BearerTokenAuthentication]
+    authentication_classes = [BearerMultiTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def put(self, request, team_slug, session_id):
@@ -270,7 +270,7 @@ class SessionDeleteAPIView(APIView):
         "scores_deleted": 4
     }
     """
-    authentication_classes = [BearerTokenAuthentication]
+    authentication_classes = [BearerMultiTokenAuthentication]
     permission_classes = [IsAuthenticated]
     
     def delete(self, request, team_slug, session_id):

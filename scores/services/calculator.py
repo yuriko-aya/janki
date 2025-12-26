@@ -127,7 +127,20 @@ def get_team_standings_by_month(team, month, year):
             
             # Sort all scores in session to determine placement
             sorted_scores = sorted(session_scores, key=lambda x: x.score, reverse=True)
-            placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member_id == raw_score.member_id)
+            
+            # Handle ties: find all players with the same score
+            member_score_value = raw_score.score
+            tied_players = [s for s in sorted_scores if s.score == member_score_value]
+            
+            # Calculate placement for ties
+            if len(tied_players) > 1:
+                # Multiple players tied - calculate shared placement
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
+                # Shared placement is average of positions (e.g., tied for 1st-2nd = 1.5)
+                placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)) / len(tied_players)
+            else:
+                # No tie - normal placement
+                placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member_id == raw_score.member_id)
             
             # Calculate score: (score - target_point) / 1000 + uma (using team's uma settings)
             uma_map = {
@@ -136,7 +149,14 @@ def get_team_standings_by_month(team, month, year):
                 3: team.uma_third,
                 4: team.uma_fourth
             }
-            uma = uma_map.get(placement, 0)
+            
+            # For ties, calculate shared Uma by averaging the tied positions' Uma values
+            if len(tied_players) > 1:
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
+                tied_positions = range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)
+                uma = sum(uma_map.get(pos, 0) for pos in tied_positions) / len(tied_players)
+            else:
+                uma = uma_map.get(int(placement), 0)
             
             calculated = (raw_score.score - team.target_point) / 1000.0 + uma
             
@@ -149,14 +169,15 @@ def get_team_standings_by_month(team, month, year):
             member_scores[raw_score.member_id]['games'] += 1
             member_scores[raw_score.member_id]['placements'].append(placement)
             
-            # Count placements
-            if placement == 1:
+            # Count placements (round fractional placements to nearest integer for statistics)
+            placement_rounded = round(placement)
+            if placement_rounded == 1:
                 member_scores[raw_score.member_id]['first_place'] += 1
-            elif placement == 2:
+            elif placement_rounded == 2:
                 member_scores[raw_score.member_id]['second_place'] += 1
-            elif placement == 3:
+            elif placement_rounded == 3:
                 member_scores[raw_score.member_id]['third_place'] += 1
-            elif placement == 4:
+            elif placement_rounded == 4:
                 member_scores[raw_score.member_id]['fourth_place'] += 1
     
     # Attach calculated scores to members
@@ -237,8 +258,21 @@ def submit_session_scores(session_id, team, score_data, session_date=None):
     
     # Sort scores by score value (descending) to determine placement
     sorted_raw_scores = sorted(raw_scores, key=lambda x: x.score, reverse=True)
-    for placement, raw_score in enumerate(sorted_raw_scores, start=1):
-        raw_score.placement = placement
+    
+    # Assign placements, handling ties
+    for i, raw_score in enumerate(sorted_raw_scores):
+        # Find all scores with same value
+        score_value = raw_score.score
+        tied_scores = [s for s in sorted_raw_scores if s.score == score_value]
+        
+        if len(tied_scores) > 1:
+            # Calculate shared placement for tied players
+            first_tied_idx = next(idx for idx, s in enumerate(sorted_raw_scores) if s.score == score_value)
+            shared_placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)) / len(tied_scores)
+            raw_score.placement = shared_placement
+        else:
+            # No tie - normal placement
+            raw_score.placement = i + 1
     
     # Bulk create all scores
     RawScore.objects.bulk_create(raw_scores)
@@ -321,7 +355,18 @@ def get_session_details(session_id, team):
             # Fallback: calculate from score ranking if placement not stored
             all_session_scores = list(raw_scores)
             sorted_scores = sorted(all_session_scores, key=lambda x: x.score, reverse=True)
-            placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.id == raw_score.id)
+            
+            # Handle ties
+            score_value = raw_score.score
+            tied_scores = [s for s in sorted_scores if s.score == score_value]
+            
+            if len(tied_scores) > 1:
+                # Calculate shared placement for tied players
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
+                placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)) / len(tied_scores)
+            else:
+                # No tie - normal placement
+                placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.id == raw_score.id)
         
         # Use team's uma configuration
         uma_map = {
@@ -330,7 +375,19 @@ def get_session_details(session_id, team):
             3: team.uma_third,
             4: team.uma_fourth
         }
-        uma = uma_map.get(placement, 0)
+        
+        # For ties, calculate shared Uma by averaging the tied positions' Uma values
+        all_session_scores = list(raw_scores)
+        sorted_scores = sorted(all_session_scores, key=lambda x: x.score, reverse=True)
+        score_value = raw_score.score
+        tied_scores = [s for s in sorted_scores if s.score == score_value]
+        
+        if len(tied_scores) > 1:
+            first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
+            tied_positions = range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)
+            uma = sum(uma_map.get(pos, 0) for pos in tied_positions) / len(tied_scores)
+        else:
+            uma = uma_map.get(int(placement), 0)
         
         # Calculate score: (score - target_point) / 1000 + uma
         base_score = (raw_score.score - team.target_point) / 1000.0

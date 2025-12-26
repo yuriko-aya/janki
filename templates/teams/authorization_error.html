@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Authorization Error{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Authorization Error
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if error_type == 'unauthorized' %}
+                        <h5>Access Denied</h5>
+                        <p class="lead">{{ message }}</p>
+                        <p>You must be a team administrator to access this resource.</p>
+                    {% elif error_type == 'expired' %}
+                        <h5>Link Expired</h5>
+                        <p class="lead">{{ message }}</p>
+                        <p>Please request a new authorization link from your team administrator.</p>
+                    {% elif error_type == 'invalid' %}
+                        <h5>Invalid Access Code</h5>
+                        <p class="lead">{{ message }}</p>
+                        <p>The authorization link appears to be malformed. Please check the URL and try again.</p>
+                    {% else %}
+                        <h5>Error</h5>
+                        <p class="lead">{{ message }}</p>
+                    {% endif %}
+                    
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="bi bi-info-circle"></i> What to do next:</h6>
+                        <ul class="mb-0">
+                            {% if error_type == 'expired' %}
+                                <li>Request a new authorization link (links expire after 1 hour)</li>
+                                <li>Contact your team administrator for assistance</li>
+                            {% elif error_type == 'unauthorized' %}
+                                <li>Verify you are logged in with the correct account</li>
+                                <li>Contact your team administrator to be added as an admin</li>
+                            {% else %}
+                                <li>Double-check the authorization link</li>
+                                <li>Contact your team administrator for a new link</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="{% url 'teams:team_list' %}" class="btn btn-primary">
+                            <i class="bi bi-house"></i> Back to Teams
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
