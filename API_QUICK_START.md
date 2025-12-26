@@ -18,11 +18,15 @@
 Using cURL (replace `YOUR_TOKEN` and `YOUR_TEAM_SLUG`):
 
 ```bash
+# First, validate your token:
+curl -X GET https://your-domain.com/api/validate-token/ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
 # Get member IDs first by viewing your team members page
 # Then submit a session:
 
 curl -X POST https://your-domain.com/api/teams/YOUR_TEAM_SLUG/sessions/ \
-  -H "Authorization: Token YOUR_TOKEN" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "session_id": "2024-12-23-game1",
@@ -37,6 +41,11 @@ curl -X POST https://your-domain.com/api/teams/YOUR_TEAM_SLUG/sessions/ \
 ```
 
 ### 3. Common Use Cases
+
+**Validate your token:**
+```bash
+GET /api/validate-token/
+```
 
 **Submit a new session:**
 ```bash
@@ -64,7 +73,7 @@ class MahjongAPIClient:
     def __init__(self, base_url, token, team_slug):
         self.base_url = base_url
         self.headers = {
-            "Authorization": f"Token {token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
         self.team_slug = team_slug
@@ -138,7 +147,7 @@ async function submitSession(sessionId, scores, sessionDate = null) {
       payload,
       {
         headers: {
-          'Authorization': `Token ${TOKEN}`,
+          'Authorization': `Bearer ${TOKEN}`,
           'Content-Type': 'application/json'
         }
       }
@@ -175,7 +184,7 @@ submitSession(
 
 **401 Unauthorized:**
 - Token is missing or invalid
-- Check the Authorization header format: `Token your-token-here`
+- Check the Authorization header format: `Bearer your-token-here`
 
 **403 Forbidden:**
 - You're not the admin of this team
