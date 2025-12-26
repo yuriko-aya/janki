@@ -207,6 +207,14 @@ Calculated Score = ((Raw Score - target_point) / 1,000) + Uma Bonus + (Chombo Pe
      * **3rd place:** -5 points (`team.uma_third`)
      * **4th place:** -15 points (`team.uma_fourth`)
    - Uma bonuses should sum to zero across the 4 players (recommended)
+   - **Tie Handling:** When multiple players have the same raw score:
+     * **Shared Placement:** Tied players receive the average of the positions they occupy
+       - Example: Two players tied for 1st occupy positions 1 and 2 → both get placement 1.5
+       - Example: Three players tied for 2nd occupy positions 2, 3, and 4 → all get placement 3.0
+     * **Shared Uma:** Tied players split the total Uma for the positions they occupy equally
+       - Example: Tied for 1st-2nd → Uma = (15 + 5) / 2 = +10 each
+       - Example: Tied for 3rd-4th → Uma = (-5 + -15) / 2 = -10 each
+     * This ensures fairness and maintains zero-sum scoring
 
 3. **Chombo Penalty (Bankruptcy):**
    - Applied if player went bankrupt (`RawScore.chombo > 0`)
@@ -244,6 +252,18 @@ Calculated Score = ((Raw Score - target_point) / 1,000) + Uma Bonus + (Chombo Pe
 
 **Aggregate (after 2 sessions):** Alice: +5-7=-2, Bob: +20+5=+25, Charlie: -10-13=-23, Diana: -35-30=-65
 
+**Session 3 with Ties:** Alice=30,000, Bob=30,000 (tied for 1st), Charlie=20,000, Diana=20,000 (tied for 3rd)
+
+| Player  | Raw Score | Placement | Base | Uma        | Chombo | Total |
+|---------|-----------|-----------|------|------------|--------|-------|
+| Alice   | 30,000    | 1.5       | +0   | +10 (shared) | -    | +10   |
+| Bob     | 30,000    | 1.5       | +0   | +10 (shared) | -    | +10   |
+| Charlie | 20,000    | 3.5       | -10  | -10 (shared) | -    | -20   |
+| Diana   | 20,000    | 3.5       | -10  | -10 (shared) | -    | -20   |
+| **SUM** |           |           |      |            |        | **-20** |
+
+*Note: Tied players share placements (1.5, 3.5) and split Uma bonuses equally (+10, -10) to maintain fairness and zero-sum scoring.*
+
 ### Implementation Details
 
 **RawScore Model:**
@@ -251,7 +271,7 @@ Calculated Score = ((Raw Score - target_point) / 1,000) + Uma Bonus + (Chombo Pe
 class RawScore(models.Model):
     member = models.ForeignKey('teams.Member', on_delete=models.CASCADE, related_name='raw_scores', db_index=True)
     score = models.IntegerField()  # Raw Mahjong score (e.g., 25000, 32000)
-    placement = models.IntegerField(null=True, blank=True)  # Player position in session (1-4)
+    placement = models.FloatField(null=True, blank=True)  # Player position in session (1-4, can be fractional for ties like 1.5)
     chombo = models.IntegerField(default=0)  # Number of chombos (bankruptcies) - can be stacked
     session_id = models.CharField(max_length=100, db_index=True)
     session_date = models.DateField(null=True, blank=True)  # Date of the game session
@@ -314,14 +334,18 @@ def submit_session_scores(session_id, team, score_data, session_date=None):
 
 ### Key Rules for Implementation
 1. **Placement is determined by raw score ranking** (highest raw score = 1st place, lowest = 4th place)
-2. **Uma is always applied** based on placement, even if a player has negative base score
-3. **Chombo penalty is applied after Uma** (so a 1st place with chombo: +2 + 15 - 30 = -13)
-4. **Incomplete sessions are ignored** (a member with 1 game shows games_played=1, another member in 2 complete sessions shows games_played=2)
-5. **CalculatedScore.total is a FloatField** to support decimal calculations
-6. **RawScore.chombo is an IntegerField (default=0)**; can be 0, 1, 2, etc. for multiple chombos
-7. **Placement can be pre-calculated and stored** in `RawScore.placement` or calculated on-the-fly from score ranking
-8. **Team parameters are configurable**: target_point, uma values, chombo_enabled
-9. **Session date tracking**: `RawScore.session_date` allows historical record keeping
+2. **Tie handling is automatic:** When multiple players have the same raw score:
+   - They share placements (e.g., tied for 1st-2nd = placement 1.5 each)
+   - They split Uma bonuses equally (e.g., tied for 1st-2nd = (+15+5)/2 = +10 each)
+   - Placement is stored as FloatField to support fractional values
+3. **Uma is always applied** based on placement, even if a player has negative base score
+4. **Chombo penalty is applied after Uma** (so a 1st place with chombo: +2 + 15 - 30 = -13)
+5. **Incomplete sessions are ignored** (a member with 1 game shows games_played=1, another member in 2 complete sessions shows games_played=2)
+6. **CalculatedScore.total is a FloatField** to support decimal calculations
+7. **RawScore.chombo is an IntegerField (default=0)**; can be 0, 1, 2, etc. for multiple chombos
+8. **Placement can be pre-calculated and stored** in `RawScore.placement` or calculated on-the-fly from score ranking
+9. **Team parameters are configurable**: target_point, uma values, chombo_enabled
+10. **Session date tracking**: `RawScore.session_date` allows historical record keeping
 
 ---
 

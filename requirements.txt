@@ -2,5 +2,8 @@ Django==5.2.8
 django-environ==0.12.0
 psycopg2-binary==2.9.11
 djangorestframework==3.16.1
+drf-multitokenauth==2.1.0
+django-ipware==3.0.7
 gunicorn==21.2.0
 requests==2.31.0
+cryptography==42.0.5

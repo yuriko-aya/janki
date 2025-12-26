@@ -5,6 +5,13 @@ from django.core.exceptions import PermissionDenied
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.views import View
+from django.conf import settings
+from drf_multitokenauth.models import MultiToken
+import base64
+import json
+from hashlib import sha256
+from cryptography.fernet import Fernet, InvalidToken
 from teams.models import Team, Member
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from accounts.models import TeamAdmin
@@ -237,3 +244,111 @@ class RemoveTeamAdminView(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.success(self.request, "Admin removed successfully.")
         return reverse_lazy('teams:admin_list', kwargs={'slug': self.team_slug})
+
+
+class AuthorizationView(LoginRequiredMixin, View):
+    """
+    Handle encrypted authorization access codes.
+    
+    URL: /teams/<team_slug>/authorization/<access_code>
+    
+    - Requires login
+    - Checks if user is team admin
+    - Validates access_code is base64-encoded Fernet-encrypted token
+    - Checks if token age is less than 1 hour
+    - Decrypts and stores the auth token for the user
+    """
+    
+    def get_fernet_key(self):
+        """Get Fernet encryption key from settings."""
+        key = settings.FERNET_KEY
+        if not key:
+            raise ValueError(
+                "FERNET_KEY not configured in settings. "
+                "Add FERNET_KEY to your .env file. "
+                "Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+            )
+        # Ensure it's bytes
+        if isinstance(key, str):
+            key = key.encode()
+        return key
+    
+    def get(self, request, slug, access_code):
+        # Get team
+        team = get_object_or_404(Team, slug=slug)
+        
+        # Check if user is team admin
+        if not team.admins.filter(user=request.user).exists():
+            return render(request, 'teams/authorization_error.html', {
+                'error_type': 'unauthorized',
+                'message': 'You do not have permission to access this resource.'
+            }, status=403)
+        
+        try:
+            # Initialize Fernet cipher
+            fernet = Fernet(self.get_fernet_key())
+            
+            # Decode base64 access code
+            try:
+                encrypted_data = base64.urlsafe_b64decode(access_code)
+            except Exception:
+                return render(request, 'teams/authorization_error.html', {
+                    'error_type': 'invalid',
+                    'message': 'Invalid access code format.'
+                }, status=400)
+            
+            # Decrypt with Fernet (includes timestamp validation)
+            try:
+                # ttl=3600 means 1 hour expiry
+                decrypted_data = fernet.decrypt(encrypted_data, ttl=3600)
+            except InvalidToken:
+                return render(request, 'teams/authorization_error.html', {
+                    'error_type': 'expired',
+                    'message': 'This authorization link has expired. Links are valid for 1 hour.'
+                }, status=410)
+            
+            # Parse decrypted JSON data
+            try:
+                payload = json.loads(decrypted_data.decode('utf-8'))
+                # The 'token' field is the actual API token to be used
+                reference_token = payload.get('token')
+                if not reference_token:
+                    raise ValueError("Missing token in payload")
+            except (json.JSONDecodeError, ValueError) as e:
+                return render(request, 'teams/authorization_error.html', {
+                    'error_type': 'invalid',
+                    'message': 'Invalid access code data.'
+                }, status=400)
+            
+            # Check if this exact token key already exists
+            existing_token = MultiToken.objects.filter(key=reference_token).first()
+            
+            if existing_token:
+                if existing_token.user == request.user:
+                    # Token already belongs to this user - success
+                    return render(request, 'teams/authorization_success.html', {
+                        'team': team,
+                        'token_created': False
+                    })
+                else:
+                    # Token belongs to different user - error
+                    return render(request, 'teams/authorization_error.html', {
+                        'error_type': 'invalid',
+                        'message': 'This authorization token is already in use by another user.'
+                    }, status=409)
+            
+            # Create a new MultiToken with the reference_token as the key
+            token_instance = MultiToken.objects.create(user=request.user, key=reference_token)
+            
+            # Success - token created and stored
+            return render(request, 'teams/authorization_success.html', {
+                'team': team,
+                'token_created': True
+            })
+            
+        except Exception as e:
+            # Catch-all for unexpected errors
+            return render(request, 'teams/authorization_error.html', {
+                'error_type': 'error',
+                'message': f'An error occurred: {str(e)}'
+            }, status=500)

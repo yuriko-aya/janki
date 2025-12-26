@@ -9,7 +9,7 @@ class RawScore(models.Model):
     """
     member = models.ForeignKey('teams.Member', on_delete=models.CASCADE, related_name='raw_scores', db_index=True)
     score = models.IntegerField()  # Mahjong score value (e.g., 25000, 18000, etc.)
-    placement = models.IntegerField(null=True, blank=True)  # Player position in session (1st, 2nd, 3rd, 4th)
+    placement = models.FloatField(null=True, blank=True)  # Player position in session (1-4, can be fractional for ties like 1.5)
     chombo = models.IntegerField(default=0)  # Number of chombos (bankruptcies) - can be stacked
     session_id = models.CharField(max_length=100, db_index=True)  # Groups 4 scores per session
     session_date = models.DateField(null=True, blank=True)  # Date of the game session (for historical records)
@@ -118,9 +118,27 @@ class CalculatedScore(models.Model):
             
             # Sort all scores to determine placement (highest score = 1st place)
             sorted_scores = sorted(session_all_scores, key=lambda x: x.score, reverse=True)
-            placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member == self.member)
+            
+            # Handle ties: find all players with the same score
+            member_score_value = member_raw_score.score
+            tied_players = [s for s in sorted_scores if s.score == member_score_value]
+            
+            # Calculate placement for ties
+            if len(tied_players) > 1:
+                # Multiple players tied - calculate shared placement
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
+                # Shared placement is average of positions (e.g., tied for 1st-2nd = 1.5)
+                placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)) / len(tied_players)
+            else:
+                # No tie - normal placement
+                placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member == self.member)
+            
             placements.append(placement)
-            placement_counts[placement] += 1
+            
+            # Count discrete placements for statistics (round to nearest integer)
+            placement_rounded = round(placement)
+            if 1 <= placement_rounded <= 4:
+                placement_counts[placement_rounded] += 1
             
             # Get Uma bonus based on placement (using team's uma settings)
             team = self.member.team
@@ -130,7 +148,14 @@ class CalculatedScore(models.Model):
                 3: team.uma_third,
                 4: team.uma_fourth
             }
-            uma = uma_map.get(placement, 0)
+            
+            # For ties, calculate shared Uma by averaging the tied positions' Uma values
+            if len(tied_players) > 1:
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
+                tied_positions = range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)
+                uma = sum(uma_map.get(pos, 0) for pos in tied_positions) / len(tied_players)
+            else:
+                uma = uma_map.get(int(placement), 0)
             
             # Calculate score: (score - target_point) / 1000 + uma
             target = self.member.team.target_point

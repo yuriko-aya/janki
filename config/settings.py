@@ -26,6 +26,9 @@ env.read_env(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-dev-key-change-in-production')
 
+# Fernet encryption key for authorization access codes
+FERNET_KEY = env('FERNET_KEY', default=None)
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DEBUG', default=True)
 
@@ -43,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_multitokenauth',
     'accounts',
     'teams',
     'scores',

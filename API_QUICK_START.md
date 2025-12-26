@@ -4,14 +4,27 @@
 
 ### 1. Get Your API Token
 
+**Option A: Via Authorization Link (Easiest)**
+1. Request an authorization link from your system administrator
+2. Visit the link while logged in to the website
+3. The system will automatically generate an API token for you (using drf-multitokenauth)
+4. **Copy the token immediately** - it will only be shown once
+5. Store it securely (like a password)
+
+**Option B: Via Admin Panel**
 1. Go to the admin panel: `https://your-domain.com/admin/`
 2. Log in with your credentials
-3. Navigate to **Users** → Find your username → Click to edit
-4. Scroll down to the **API Token** section
-5. If no token exists, one will be created when you save
-6. Copy the token key (it looks like: `9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b`)
+3. Navigate to **Drf_Multitokenauth** → **Multi Tokens**
+4. Click **Add Multi Token** button
+5. Select your username from the dropdown
+6. Optionally add a name (e.g., "My Laptop", "Mobile App")
+7. Click **Save**
+8. **Copy the token immediately** - you won't be able to see it again
 
-**Important:** Treat this token like a password. Anyone with this token can submit scores on your behalf.
+**Important:** 
+- Treat this token like a password. Anyone with this token can submit scores on your behalf.
+- drf-multitokenauth supports multiple tokens per user - you can create different tokens for different apps or devices
+- Tokens never expire unless you delete them
 
 ### 2. Test the API
 
