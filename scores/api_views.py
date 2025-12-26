@@ -51,7 +51,7 @@ class SessionSubmitAPIView(APIView):
         team = get_object_or_404(Team, slug=team_slug)
         
         # Check if user is team admin
-        if not hasattr(request.user, 'team_admin') or request.user.team_admin.team != team:
+        if not team.admins.filter(user=request.user).exists():
             return Response(
                 {'error': 'You do not have permission to submit scores for this team.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -75,7 +75,7 @@ class SessionSubmitAPIView(APIView):
             converted_scores.append({
                 'member_id': member.id,
                 'score': score['score'],
-                'chombo': score.get('chombo', False)
+                'chombo': score.get('chombo', 0)
             })
         
         # Check if session already exists
@@ -142,7 +142,7 @@ class SessionUpdateAPIView(APIView):
         team = get_object_or_404(Team, slug=team_slug)
         
         # Check if user is team admin
-        if not hasattr(request.user, 'team_admin') or request.user.team_admin.team != team:
+        if not team.admins.filter(user=request.user).exists():
             return Response(
                 {'error': 'You do not have permission to update scores for this team.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -178,7 +178,7 @@ class SessionUpdateAPIView(APIView):
             converted_scores.append({
                 'member_id': member.id,
                 'score': score['score'],
-                'chombo': score.get('chombo', False)
+                'chombo': score.get('chombo', 0)
             })
         
         # Update session scores
@@ -228,7 +228,7 @@ class SessionDeleteAPIView(APIView):
         team = get_object_or_404(Team, slug=team_slug)
         
         # Check if user is team admin
-        if not hasattr(request.user, 'team_admin') or request.user.team_admin.team != team:
+        if not team.admins.filter(user=request.user).exists():
             return Response(
                 {'error': 'You do not have permission to delete scores for this team.'},
                 status=status.HTTP_403_FORBIDDEN

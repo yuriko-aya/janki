@@ -10,8 +10,9 @@
     </div>
     <div>
         <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6;">← Back to Teams</a>
-        {% if user.is_authenticated and user == team.admin.user %}
+        {% if is_team_admin %}
             <a href="{% url 'teams:member_list' slug=team.slug %}" class="btn">Manage Members</a>
+            <a href="{% url 'teams:admin_list' slug=team.slug %}" class="btn" style="background-color: #8e44ad;">Manage Admins</a>
             <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60; margin-left: 0.5rem;">Submit Session</a>
             <a href="{% url 'teams:team_update' slug=team.slug %}" class="btn" style="background-color: #f39c12; margin-left: 0.5rem;">Edit Team</a>
         {% endif %}
@@ -26,8 +27,12 @@
                 <dt style="font-weight: bold;">Members</dt>
                 <dd style="margin-bottom: 1rem;">{{ team.members.count }}</dd>
                 
-                <dt style="font-weight: bold;">Admin</dt>
-                <dd style="margin-bottom: 1rem;">{{ team.admin.user.get_full_name|default:team.admin.user.username }}</dd>
+                <dt style="font-weight: bold;">Admins</dt>
+                <dd style="margin-bottom: 1rem;">
+                    {% for admin in team.admins.all %}
+                        {{ admin.user.get_full_name|default:admin.user.username }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </dd>
                 
                 <dt style="font-weight: bold;">Team Slug</dt>
                 <dd style="margin-bottom: 1rem; font-family: monospace;">{{ team.slug }}</dd>
@@ -78,22 +83,55 @@
                 </div>
             </div>
             {% if standings %}
-                <table style="margin-top: 1rem;">
+                <table id="standingsTable" style="margin-top: 1rem;">
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th style="text-align: right;">Total Score</th>
-                            <th style="text-align: right;">Games</th>
-                            <th style="text-align: right;">Avg/Game</th>
-                            <th style="text-align: right;">Avg Place</th>
-                            <th style="text-align: center;">Chombos</th>
+                            <th class="rank-cell">#</th>
+                            <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
+                                Name <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
+                                Total Score <span class="sort-indicator">▼</span>
+                            </th>
+                            <th class="sortable" data-sort="games" style="text-align: right; cursor: pointer; user-select: none;">
+                                Games <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
+                                Avg/Game <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
+                                Avg Place <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
+                                🥇 <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="second" style="text-align: center; cursor: pointer; user-select: none;">
+                                🥈 <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="third" style="text-align: center; cursor: pointer; user-select: none;">
+                                🥉 <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="fourth" style="text-align: center; cursor: pointer; user-select: none;">
+                                4th <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
+                                Chombos <span class="sort-indicator"></span>
+                            </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="standingsBody">
                         {% for member in standings %}
-                            <tr>
-                                <td><strong>{{ forloop.counter }}</strong></td>
+                            <tr data-name="{{ member.name }}"
+                                data-total="{% if member.calculated_score %}{{ member.calculated_score.total }}{% else %}0{% endif %}"
+                                data-games="{% if member.calculated_score %}{{ member.calculated_score.games_played }}{% else %}0{% endif %}"
+                                data-average="{% if member.calculated_score %}{{ member.calculated_score.average_per_game }}{% else %}0{% endif %}"
+                                data-placement="{% if member.calculated_score and member.calculated_score.average_placement > 0 %}{{ member.calculated_score.average_placement }}{% else %}999{% endif %}"
+                                data-first="{% if member.calculated_score %}{{ member.calculated_score.first_place_count }}{% else %}0{% endif %}"
+                                data-second="{% if member.calculated_score %}{{ member.calculated_score.second_place_count }}{% else %}0{% endif %}"
+                                data-third="{% if member.calculated_score %}{{ member.calculated_score.third_place_count }}{% else %}0{% endif %}"
+                                data-fourth="{% if member.calculated_score %}{{ member.calculated_score.fourth_place_count }}{% else %}0{% endif %}"
+                                data-chombo="{% if member.calculated_score %}{{ member.calculated_score.chombo_count }}{% else %}0{% endif %}">
+                                <td class="rank-cell"><strong>{{ forloop.counter }}</strong></td>
                                 <td>{{ member.name }}</td>
                                 <td style="text-align: right;">
                                     {% if member.calculated_score %}
@@ -124,6 +162,34 @@
                                     {% endif %}
                                 </td>
                                 <td style="text-align: center;">
+                                    {% if member.calculated_score %}
+                                        {{ member.calculated_score.first_place_count }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if member.calculated_score %}
+                                        {{ member.calculated_score.second_place_count }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if member.calculated_score %}
+                                        {{ member.calculated_score.third_place_count }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if member.calculated_score %}
+                                        {{ member.calculated_score.fourth_place_count }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
                                     {% if member.calculated_score and member.calculated_score.chombo_count > 0 %}
                                         <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">
                                             {{ member.calculated_score.chombo_count }}
@@ -142,5 +208,93 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('standingsTable');
+    if (!table) return;
+    
+    const tbody = document.getElementById('standingsBody');
+    const headers = table.querySelectorAll('th.sortable');
+    let currentSort = { column: 'total', direction: 'desc' };
+    
+    headers.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortBy = this.dataset.sort;
+            
+            // Toggle direction if clicking the same column
+            if (currentSort.column === sortBy) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Default direction for new column
+                currentSort.column = sortBy;
+                currentSort.direction = sortBy === 'name' ? 'asc' : 'desc';
+            }
+            
+            sortTable(sortBy, currentSort.direction);
+            updateSortIndicators();
+        });
+    });
+    
+    function sortTable(column, direction) {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        rows.sort((a, b) => {
+            let aVal = a.dataset[column];
+            let bVal = b.dataset[column];
+            
+            // Convert to appropriate type
+            if (column === 'name') {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+            } else {
+                aVal = parseFloat(aVal);
+                bVal = parseFloat(bVal);
+            }
+            
+            if (direction === 'asc') {
+                return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+            } else {
+                return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+            }
+        });
+        
+        // Re-append rows in new order
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // Update rank numbers
+        updateRankNumbers();
+    }
+    
+    function updateRankNumbers() {
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach((row, index) => {
+            const rankCell = row.querySelector('.rank-cell strong');
+            if (rankCell) {
+                rankCell.textContent = index + 1;
+            }
+        });
+    }
+    
+    function updateSortIndicators() {
+        // Clear all indicators
+        headers.forEach(header => {
+            const indicator = header.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.textContent = '';
+            }
+        });
+        
+        // Set current indicator
+        const currentHeader = Array.from(headers).find(h => h.dataset.sort === currentSort.column);
+        if (currentHeader) {
+            const indicator = currentHeader.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+            }
+        }
+    }
+});
+</script>
 
 {% endblock %}

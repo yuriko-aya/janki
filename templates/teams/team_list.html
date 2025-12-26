@@ -27,7 +27,7 @@
                 <p style="margin-bottom: 0.5rem;"><strong>Members:</strong> {{ team.members.count }}</p>
                 <p style="margin-bottom: 1rem;"><strong>Created:</strong> {{ team.created_at|date:"M d, Y" }}</p>
                 <div style="display: flex; gap: 0.5rem;">
-                    {% if user.is_authenticated and team.admin.user == user %}
+                    {% if team.id in user_admin_team_ids %}
                     <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="flex: 1; text-align: center;">Manage</a>
                     {% endif %}
                     <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="flex: 1; text-align: center;">Standings</a>

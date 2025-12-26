@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Admins - {{ team.name }} - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Manage Team Admins - {{ team.name }}</h1>
+    <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6;">← Back to Team</a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- Current Admins -->
+    <div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0;">Current Admins</h2>
+        
+        {% if team_admins %}
+            <ul style="list-style: none; padding: 0;">
+                {% for admin in team_admins %}
+                    <li style="padding: 1rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>{{ admin.user.get_full_name|default:admin.user.username }}</strong>
+                            <span style="color: #666; font-size: 0.9rem; margin-left: 0.5rem;">(@{{ admin.user.username }})</span>
+                            <br>
+                            <small style="color: #999;">Added on {{ admin.created_at|date:"M d, Y" }}</small>
+                        </div>
+                        {% if team_admins|length > 1 %}
+                            <a href="{% url 'teams:admin_remove' pk=admin.pk %}" 
+                               class="btn" 
+                               style="background-color: #e74c3c; color: white; padding: 0.5rem 1rem;"
+                               onclick="return confirm('Are you sure you want to remove this admin?');">
+                                Remove
+                            </a>
+                        {% else %}
+                            <span style="color: #999; font-size: 0.85rem; font-style: italic;">Last admin</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color: #999; font-style: italic;">No admins found.</p>
+        {% endif %}
+    </div>
+    
+    <!-- Add Admin Form -->
+    <div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0;">Add New Admin</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div style="padding: 1rem; margin-bottom: 1rem; border-radius: 4px; 
+                            background-color: {% if message.tags == 'success' %}#d4edda{% elif message.tags == 'error' %}#f8d7da{% else %}#d1ecf1{% endif %};
+                            color: {% if message.tags == 'success' %}#155724{% elif message.tags == 'error' %}#721c24{% else %}#0c5460{% endif %};
+                            border: 1px solid {% if message.tags == 'success' %}#c3e6cb{% elif message.tags == 'error' %}#f5c6cb{% else %}#bee5eb{% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" action="{% url 'teams:admin_add' slug=team.slug %}">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label for="id_username" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Username</label>
+                {{ form.username }}
+                {% if form.username.help_text %}
+                    <small style="color: #666; display: block; margin-top: 0.5rem;">{{ form.username.help_text }}</small>
+                {% endif %}
+                {% if form.username.errors %}
+                    <div style="color: #e74c3c; margin-top: 0.5rem;">
+                        {% for error in form.username.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn" style="background-color: #28a745; color: white; width: 100%;">
+                Add Admin
+            </button>
+        </form>
+        
+        <div style="margin-top: 2rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #17a2b8;">
+            <h3 style="margin-top: 0; font-size: 1rem; color: #17a2b8;">About Team Admins</h3>
+            <ul style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem; color: #666;">
+                <li>Team admins can manage all aspects of the team</li>
+                <li>Admins can add/remove members and submit scores</li>
+                <li>Admins can add other users as team admins</li>
+                <li>At least one admin must remain on the team</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

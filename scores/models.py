@@ -65,6 +65,10 @@ class CalculatedScore(models.Model):
     average_per_game = models.FloatField(default=0.0)  # Average score per game
     average_placement = models.FloatField(default=0.0)  # Average placement (1st-4th)
     chombo_count = models.IntegerField(default=0)  # Total number of chombos
+    first_place_count = models.IntegerField(default=0)  # Number of 1st place finishes
+    second_place_count = models.IntegerField(default=0)  # Number of 2nd place finishes
+    third_place_count = models.IntegerField(default=0)  # Number of 3rd place finishes
+    fourth_place_count = models.IntegerField(default=0)  # Number of 4th place finishes
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -90,6 +94,7 @@ class CalculatedScore(models.Model):
         sessions_participated = set()
         placements = []
         chombo_total = 0
+        placement_counts = {1: 0, 2: 0, 3: 0, 4: 0}
         
         # Get this member's raw scores to know which sessions they participated in
         member_sessions = self.member.raw_scores.values_list('session_id', flat=True).distinct()
@@ -115,6 +120,7 @@ class CalculatedScore(models.Model):
             sorted_scores = sorted(session_all_scores, key=lambda x: x.score, reverse=True)
             placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member == self.member)
             placements.append(placement)
+            placement_counts[placement] += 1
             
             # Get Uma bonus based on placement (using team's uma settings)
             team = self.member.team
@@ -142,3 +148,7 @@ class CalculatedScore(models.Model):
         self.average_per_game = self.total / self.games_played if self.games_played > 0 else 0.0
         self.average_placement = sum(placements) / len(placements) if placements else 0.0
         self.chombo_count = chombo_total
+        self.first_place_count = placement_counts[1]
+        self.second_place_count = placement_counts[2]
+        self.third_place_count = placement_counts[3]
+        self.fourth_place_count = placement_counts[4]

@@ -8,15 +8,17 @@ import secrets
 class TeamAdmin(models.Model):
     """
     TeamAdmin links a User to a Team.
-    A user can only be the admin of one team.
+    A user can be admin of multiple teams.
+    A team can have multiple admins.
     """
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='team_admin')
-    team = models.OneToOneField('teams.Team', on_delete=models.CASCADE, related_name='admin')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='team_admins')
+    team = models.ForeignKey('teams.Team', on_delete=models.CASCADE, related_name='admins')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Team Admin'
         verbose_name_plural = 'Team Admins'
+        unique_together = ['user', 'team']  # Prevent duplicate admin entries
 
     def __str__(self):
         return f"{self.user.username} - {self.team.name}"

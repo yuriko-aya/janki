@@ -118,7 +118,11 @@ def get_team_standings_by_month(team, month, year):
                     'total': 0.0,
                     'games': 0,
                     'placements': [],
-                    'chombo_count': 0
+                    'chombo_count': 0,
+                    'first_place': 0,
+                    'second_place': 0,
+                    'third_place': 0,
+                    'fourth_place': 0
                 }
             
             # Sort all scores in session to determine placement
@@ -144,6 +148,16 @@ def get_team_standings_by_month(team, month, year):
             member_scores[raw_score.member_id]['total'] += calculated
             member_scores[raw_score.member_id]['games'] += 1
             member_scores[raw_score.member_id]['placements'].append(placement)
+            
+            # Count placements
+            if placement == 1:
+                member_scores[raw_score.member_id]['first_place'] += 1
+            elif placement == 2:
+                member_scores[raw_score.member_id]['second_place'] += 1
+            elif placement == 3:
+                member_scores[raw_score.member_id]['third_place'] += 1
+            elif placement == 4:
+                member_scores[raw_score.member_id]['fourth_place'] += 1
     
     # Attach calculated scores to members
     members = team.members.all()
@@ -155,12 +169,20 @@ def get_team_standings_by_month(team, month, year):
             placements = member_scores[member.id]['placements']
             member.monthly_avg_placement = sum(placements) / len(placements) if placements else 0.0
             member.monthly_chombo_count = member_scores[member.id]['chombo_count']
+            member.monthly_first_place = member_scores[member.id]['first_place']
+            member.monthly_second_place = member_scores[member.id]['second_place']
+            member.monthly_third_place = member_scores[member.id]['third_place']
+            member.monthly_fourth_place = member_scores[member.id]['fourth_place']
         else:
             member.monthly_total = 0.0
             member.monthly_games = 0
             member.monthly_average = 0.0
             member.monthly_avg_placement = 0.0
             member.monthly_chombo_count = 0
+            member.monthly_first_place = 0
+            member.monthly_second_place = 0
+            member.monthly_third_place = 0
+            member.monthly_fourth_place = 0
     
     # Sort by monthly total
     return sorted(members, key=lambda m: m.monthly_total, reverse=True)
@@ -190,7 +212,7 @@ def submit_session_scores(session_id, team, score_data, session_date=None):
     for data in score_data:
         member_id = data.get('member_id')
         score = data.get('score')
-        chombo = data.get('chombo', False)
+        chombo = data.get('chombo', 0)
         
         if member_id is None or score is None:
             raise ValidationError("Each score entry must have member_id and score")
@@ -206,7 +228,7 @@ def submit_session_scores(session_id, team, score_data, session_date=None):
         raw_score = RawScore(
             member=member,
             score=int(score),
-            chombo=bool(chombo),
+            chombo=int(chombo),
             session_id=session_id,
             session_date=session_date
         )

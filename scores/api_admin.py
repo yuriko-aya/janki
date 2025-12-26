@@ -29,11 +29,14 @@ class CustomTokenAdmin(admin.ModelAdmin):
     )
     
     def user_team(self, obj):
-        """Display the team associated with the user."""
-        if hasattr(obj.user, 'team_admin'):
-            return obj.user.team_admin.team.name
+        """Display the teams associated with the user."""
+        from accounts.models import TeamAdmin
+        team_admins = TeamAdmin.objects.filter(user=obj.user)
+        if team_admins.exists():
+            teams = [ta.team.name for ta in team_admins]
+            return ', '.join(teams)
         return '-'
-    user_team.short_description = 'Team'
+    user_team.short_description = 'Teams'
     
     def has_change_permission(self, request, obj=None):
         """Tokens cannot be changed, only created or deleted."""
