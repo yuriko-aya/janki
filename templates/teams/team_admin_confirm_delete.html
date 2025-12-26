@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Remove Admin - {{ object.team.name }} - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <h1 style="margin-bottom: 2rem;">Remove Team Admin</h1>
+    
+    <div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">
+            Are you sure you want to remove <strong>{{ object.user.get_full_name|default:object.user.username }}</strong> 
+            as an admin of <strong>{{ object.team.name }}</strong>?
+        </p>
+        
+        <div style="padding: 1rem; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 1.5rem;">
+            <strong>⚠️ Warning:</strong> This user will no longer be able to manage the team, add members, or submit scores.
+        </div>
+        
+        <form method="post" style="display: flex; gap: 1rem;">
+            {% csrf_token %}
+            <button type="submit" class="btn" style="background-color: #e74c3c; color: white; flex: 1;">
+                Yes, Remove Admin
+            </button>
+            <a href="{% url 'teams:admin_list' slug=object.team.slug %}" 
+               class="btn" 
+               style="background-color: #95a5a6; color: white; flex: 1; text-align: center; text-decoration: none; line-height: 2.5;">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

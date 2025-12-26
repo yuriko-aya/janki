@@ -50,7 +50,7 @@
                         <h3 style="margin: 0; color: #2c3e50; font-family: monospace;">{{ session.session_id }}</h3>
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                             <span style="color: #666; font-size: 0.9rem;">{{ session.session_date|date:"M d, Y" }}</span>
-                            {% if user.is_authenticated and team.admin.user == user %}
+                            {% if is_team_admin %}
                                 <a href="{% url 'scores:session_edit' team_slug=team.slug session_id=session.session_id %}" 
                                    class="btn btn-sm" 
                                    style="background-color: #007bff; color: white; padding: 6px 12px; font-size: 0.85rem; text-decoration: none; border-radius: 3px; margin-left: 1rem;">

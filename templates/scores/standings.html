@@ -59,6 +59,18 @@
                     <th class="sortable" data-sort="placement" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
                         Avg Placement <span class="sort-indicator"></span>
                     </th>
+                    <th class="sortable" data-sort="first" style="text-align: center; width: 60px; cursor: pointer; user-select: none;">
+                        🥇 <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="second" style="text-align: center; width: 60px; cursor: pointer; user-select: none;">
+                        🥈 <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="third" style="text-align: center; width: 60px; cursor: pointer; user-select: none;">
+                        🥉 <span class="sort-indicator"></span>
+                    </th>
+                    <th class="sortable" data-sort="fourth" style="text-align: center; width: 60px; cursor: pointer; user-select: none;">
+                        4th <span class="sort-indicator"></span>
+                    </th>
                     <th class="sortable" data-sort="chombo" style="text-align: center; width: 100px; cursor: pointer; user-select: none;">
                         Chombo Count <span class="sort-indicator"></span>
                     </th>
@@ -71,6 +83,10 @@
                         data-games="{{ member.monthly_games }}" 
                         data-average="{{ member.monthly_average }}" 
                         data-placement="{{ member.monthly_avg_placement|default:999 }}"
+                        data-first="{{ member.monthly_first_place }}"
+                        data-second="{{ member.monthly_second_place }}"
+                        data-third="{{ member.monthly_third_place }}"
+                        data-fourth="{{ member.monthly_fourth_place }}"
                         data-chombo="{{ member.monthly_chombo_count }}">
                         <td class="rank-cell" style="text-align: center;">
                             <span style="
@@ -105,6 +121,18 @@
                             {% else %}
                                 -
                             {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ member.monthly_first_place }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ member.monthly_second_place }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ member.monthly_third_place }}
+                        </td>
+                        <td style="text-align: center;">
+                            {{ member.monthly_fourth_place }}
                         </td>
                         <td style="text-align: center;">
                             {% if member.monthly_chombo_count > 0 %}

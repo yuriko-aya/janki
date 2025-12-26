@@ -27,7 +27,7 @@ class RawScoreListView(LoginRequiredMixin, ListView):
     
     def dispatch(self, request, *args, **kwargs):
         team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if team.admin.user != request.user:
+        if not team.admins.filter(user=request.user).exists():
             raise PermissionDenied("You do not have permission to view this team's scores.")
         return super().dispatch(request, *args, **kwargs)
     
@@ -48,7 +48,7 @@ class SessionSubmitView(LoginRequiredMixin, FormView):
     
     def dispatch(self, request, *args, **kwargs):
         team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if team.admin.user != request.user:
+        if not team.admins.filter(user=request.user).exists():
             raise PermissionDenied("You do not have permission to submit scores for this team.")
         return super().dispatch(request, *args, **kwargs)
     
@@ -68,7 +68,7 @@ class SessionSubmitView(LoginRequiredMixin, FormView):
         for i in range(4):
             member = form.cleaned_data.get(f'member_{i}')
             score = form.cleaned_data.get(f'score_{i}')
-            chombo = form.cleaned_data.get(f'chombo_{i}', False)
+            chombo = form.cleaned_data.get(f'chombo_{i}', 0)
             if member and score is not None:
                 score_data.append({
                     'member_id': member.id,
@@ -97,7 +97,7 @@ class SessionEditView(LoginRequiredMixin, FormView):
     
     def dispatch(self, request, *args, **kwargs):
         team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if team.admin.user != request.user:
+        if not team.admins.filter(user=request.user).exists():
             raise PermissionDenied("You do not have permission to edit scores for this team.")
         return super().dispatch(request, *args, **kwargs)
     
@@ -138,7 +138,7 @@ class SessionEditView(LoginRequiredMixin, FormView):
         for i in range(4):
             member = form.cleaned_data.get(f'member_{i}')
             score = form.cleaned_data.get(f'score_{i}')
-            chombo = form.cleaned_data.get(f'chombo_{i}', False)
+            chombo = form.cleaned_data.get(f'chombo_{i}', 0)
             if member and score is not None:
                 score_data.append({
                     'member_id': member.id,
@@ -311,5 +311,11 @@ class SessionsView(DetailView):
         context['selected_year'] = year
         context['months'] = list(range(1, 13))
         context['current_year'] = today.year
+        
+        # Check if user is admin
+        if self.request.user.is_authenticated:
+            context['is_team_admin'] = team.admins.filter(user=self.request.user).exists()
+        else:
+            context['is_team_admin'] = False
         
         return context

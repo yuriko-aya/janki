@@ -1,5 +1,7 @@
 from django import forms
+from django.contrib.auth.models import User
 from teams.models import Team, Member
+from accounts.models import TeamAdmin
 
 
 class TeamForm(forms.ModelForm):
@@ -64,3 +66,34 @@ class MemberForm(forms.ModelForm):
                 'placeholder': 'Enter member name'
             }),
         }
+
+
+class AddTeamAdminForm(forms.Form):
+    """Form for adding a new admin to a team."""
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter username to add as admin'
+        }),
+        help_text='Enter the username of the user you want to add as a team admin.'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.team = kwargs.pop('team', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        
+        # Check if user exists
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise forms.ValidationError(f"User '{username}' does not exist.")
+        
+        # Check if user is already an admin of this team
+        if self.team and TeamAdmin.objects.filter(team=self.team, user=user).exists():
+            raise forms.ValidationError(f"User '{username}' is already an admin of this team.")
+        
+        return username

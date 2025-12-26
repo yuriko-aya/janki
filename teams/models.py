@@ -40,6 +40,14 @@ class Team(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    def is_admin(self, user):
+        """
+        Check if a user is an admin of this team.
+        """
+        if not user or not user.is_authenticated:
+            return False
+        return self.admins.filter(user=user).exists()
+
     def get_standings(self):
         """
         Return team members sorted by their calculated score (descending).
