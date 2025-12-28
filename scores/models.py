@@ -117,7 +117,8 @@ class CalculatedScore(models.Model):
             member_raw_score = session_all_scores.get(member=self.member)
             
             # Sort all scores to determine placement (highest score = 1st place)
-            sorted_scores = sorted(session_all_scores, key=lambda x: x.score, reverse=True)
+            # Convert QuerySet to list first to avoid multiple evaluations
+            sorted_scores = sorted(list(session_all_scores), key=lambda x: x.score, reverse=True)
             
             # Handle ties: find all players with the same score
             member_score_value = member_raw_score.score
