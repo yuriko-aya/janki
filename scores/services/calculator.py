@@ -125,7 +125,7 @@ def get_team_standings_by_month(team, month, year):
                     'fourth_place': 0
                 }
             
-            # Sort all scores in session to determine placement
+            # Sort all scores in session to determine placement (already a list)
             sorted_scores = sorted(session_scores, key=lambda x: x.score, reverse=True)
             
             # Handle ties: find all players with the same score
@@ -346,41 +346,34 @@ def get_session_details(session_id, team):
         'players': []
     }
     
+    # Convert QuerySet to list once to avoid multiple evaluations
+    all_session_scores = list(raw_scores)
+    sorted_scores = sorted(all_session_scores, key=lambda x: x.score, reverse=True)
+    
+    # Use team's uma configuration
+    uma_map = {
+        1: team.uma_first,
+        2: team.uma_second,
+        3: team.uma_third,
+        4: team.uma_fourth
+    }
+    
     # Calculate scores for each player
-    for raw_score in raw_scores:
-        # Use stored placement or calculate it from score ranking
-        if raw_score.placement:
-            placement = raw_score.placement
-        else:
-            # Fallback: calculate from score ranking if placement not stored
-            all_session_scores = list(raw_scores)
-            sorted_scores = sorted(all_session_scores, key=lambda x: x.score, reverse=True)
-            
-            # Handle ties
-            score_value = raw_score.score
-            tied_scores = [s for s in sorted_scores if s.score == score_value]
-            
-            if len(tied_scores) > 1:
-                # Calculate shared placement for tied players
-                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
-                placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)) / len(tied_scores)
-            else:
-                # No tie - normal placement
-                placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.id == raw_score.id)
-        
-        # Use team's uma configuration
-        uma_map = {
-            1: team.uma_first,
-            2: team.uma_second,
-            3: team.uma_third,
-            4: team.uma_fourth
-        }
-        
-        # For ties, calculate shared Uma by averaging the tied positions' Uma values
-        all_session_scores = list(raw_scores)
-        sorted_scores = sorted(all_session_scores, key=lambda x: x.score, reverse=True)
+    for raw_score in all_session_scores:
+        # Always recalculate placement from score ranking to handle ties correctly
+        # (Don't rely on stored placement which might be outdated)
         score_value = raw_score.score
         tied_scores = [s for s in sorted_scores if s.score == score_value]
+        
+        if len(tied_scores) > 1:
+            # Calculate shared placement for tied players
+            first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
+            placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)) / len(tied_scores)
+        else:
+            # No tie - normal placement
+            placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.id == raw_score.id)
+        
+        # For ties, calculate shared Uma by averaging the tied positions' Uma values
         
         if len(tied_scores) > 1:
             first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
@@ -393,9 +386,9 @@ def get_session_details(session_id, team):
         base_score = (raw_score.score - team.target_point) / 1000.0
         calculated = base_score + uma
         
-        # Apply chombo penalty if enabled for this team
-        if raw_score.chombo and team.chombo_enabled:
-            calculated -= 30
+        # Apply chombo penalty if enabled for this team (multiply by chombo count)
+        if raw_score.chombo > 0 and team.chombo_enabled:
+            calculated -= (30 * raw_score.chombo)
         
         session_details['players'].append({
             'member': raw_score.member.name,

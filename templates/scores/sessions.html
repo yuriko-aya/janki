@@ -86,13 +86,16 @@
                                             border-radius: 3px;
                                             font-weight: bold;
                                             {% if score.placement == 1 %}background-color: #ffd700; color: #000;
+                                            {% elif score.placement < 2 %}background-color: #ffd700; color: #000;
                                             {% elif score.placement == 2 %}background-color: #c0c0c0; color: #000;
+                                            {% elif score.placement < 3 %}background-color: #c0c0c0; color: #000;
                                             {% elif score.placement == 3 %}background-color: #cd7f32; color: #fff;
+                                            {% elif score.placement < 4 %}background-color: #cd7f32; color: #fff;
                                             {% else %}background-color: #95a5a6; color: #fff;{% endif %}
                                         ">
-                                            {% if score.placement == 1 %}1st
-                                            {% elif score.placement == 2 %}2nd
-                                            {% elif score.placement == 3 %}3rd
+                                            {% if score.placement <= 1.5 %}1st
+                                            {% elif score.placement <= 2.5 %}2nd
+                                            {% elif score.placement <= 3.5 %}3rd
                                             {% else %}4th{% endif %}
                                         </span>
                                     </td>

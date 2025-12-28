@@ -261,17 +261,31 @@ class SessionsView(DetailView):
                 'scores': []
             }
             
+            # Uma map using team's settings
+            uma_map = {
+                1: team.uma_first,
+                2: team.uma_second,
+                3: team.uma_third,
+                4: team.uma_fourth
+            }
+            
             for idx, raw_score in enumerate(sorted_scores):
-                placement = idx + 1
+                # Calculate placement, handling ties
+                score_value = raw_score.score
+                tied_scores = [s for s in sorted_scores if s.score == score_value]
                 
-                # Calculate Uma based on placement (using team's uma settings)
-                uma_map = {
-                    1: team.uma_first,
-                    2: team.uma_second,
-                    3: team.uma_third,
-                    4: team.uma_fourth
-                }
-                uma = uma_map.get(placement, 0)
+                if len(tied_scores) > 1:
+                    # Calculate shared placement for tied players
+                    first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
+                    placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)) / len(tied_scores)
+                    
+                    # Calculate shared Uma by averaging the tied positions' Uma values
+                    tied_positions = range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)
+                    uma = sum(uma_map.get(pos, 0) for pos in tied_positions) / len(tied_scores)
+                else:
+                    # No tie - normal placement
+                    placement = idx + 1
+                    uma = uma_map.get(placement, 0)
                 
                 # Calculate base score
                 base_score = (raw_score.score - team.target_point) / 1000.0

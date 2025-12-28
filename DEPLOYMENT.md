@@ -2,7 +2,76 @@
 
 **Status:** ✅ **Gunicorn installed and tested**  
 **Version:** 21.2.0  
-**Date:** December 14, 2025
+**Last Updated:** December 26, 2025
+
+---
+
+## Quick Deployment Checklist
+
+After pulling latest code to production:
+
+1. **Activate virtual environment**
+   ```bash
+   cd /home/alice/lab/janki
+   source env/bin/activate
+   ```
+
+2. **Install/Update dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run migrations**
+   ```bash
+   python manage.py migrate
+   ```
+
+4. **Collect static files**
+   ```bash
+   python manage.py collectstatic --noinput
+   ```
+
+5. **Restart Gunicorn**
+   ```bash
+   sudo systemctl restart janki
+   # OR if using manual process:
+   pkill -f gunicorn
+   gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --daemon
+   ```
+
+6. **Check for errors**
+   ```bash
+   python manage.py check
+   sudo journalctl -u janki -n 50  # If using systemd
+   ```
+
+---
+
+## Recent Updates Requiring Migration
+
+### December 26, 2025 - drf-multitokenauth Migration
+
+**Changes:**
+- Migrated from Knox to drf-multitokenauth for multi-token support
+- Added public API endpoint `/api/teams/<slug>/exists/`
+
+**Required on Production:**
+```bash
+# 1. Install new dependencies
+pip install drf-multitokenauth==2.1.0 django-ipware==3.0.7
+
+# 2. Run migrations (creates drf_multitokenauth_multitoken table)
+python manage.py migrate
+
+# 3. Restart application
+sudo systemctl restart janki
+```
+
+**Migrations Applied:**
+- `drf_multitokenauth.0001_initial`
+- `drf_multitokenauth.0002_rename_ip_address_20160426`
+- `drf_multitokenauth.0003_pk_migration`
+- `drf_multitokenauth.0004_multitoken_name`
 
 ---
 
