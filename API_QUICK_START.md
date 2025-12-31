@@ -36,6 +36,13 @@ curl -X GET https://your-domain.com/api/validate-token/ \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # Get member IDs first by viewing your team members page
+# Or add a new member first:
+
+curl -X POST https://your-domain.com/api/teams/YOUR_TEAM_SLUG/members/ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "New Player"}'
+
 # Then submit a session:
 
 curl -X POST https://your-domain.com/api/teams/YOUR_TEAM_SLUG/sessions/ \
@@ -58,6 +65,11 @@ curl -X POST https://your-domain.com/api/teams/YOUR_TEAM_SLUG/sessions/ \
 **Validate your token:**
 ```bash
 GET /api/validate-token/
+```
+
+**Add a new member to your team:**
+```bash
+POST /api/teams/{team_slug}/members/
 ```
 
 **Submit a new session:**
@@ -91,6 +103,24 @@ class MahjongAPIClient:
         }
         self.team_slug = team_slug
     
+    def add_member(self, name):
+        """
+        Add a new member to the team.
+        
+        Args:
+            name: Name of the new member
+        
+        Returns:
+            Response dict with member details
+        """
+        payload = {"name": name}
+        response = requests.post(
+            f"{self.base_url}/teams/{self.team_slug}/members/",
+            headers=self.headers,
+            json=payload
+        )
+        return response.json()
+    
     def submit_session(self, session_id, scores, session_date=None):
         """
         Submit a new session.
@@ -121,6 +151,11 @@ client = MahjongAPIClient(
     team_slug="my-team"
 )
 
+# Add a new member
+member_result = client.add_member("New Player")
+print(f"Added member: {member_result}")
+
+# Submit a session
 result = client.submit_session(
     session_id="2024-12-23-evening",
     scores=[
@@ -143,6 +178,27 @@ const axios = require('axios');
 const API_BASE_URL = 'https://your-domain.com/api';
 const TOKEN = 'your-token-here';
 const TEAM_SLUG = 'my-team';
+
+async function addMember(name) {
+  const payload = { name: name };
+  
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/teams/${TEAM_SLUG}/members/`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response.data);
+    throw error;
+  }
+}
 
 async function submitSession(sessionId, scores, sessionDate = null) {
   const payload = {
@@ -173,6 +229,12 @@ async function submitSession(sessionId, scores, sessionDate = null) {
 }
 
 // Usage
+
+// Add a member
+addMember('New Player')
+  .then(result => console.log('Member added:', result));
+
+// Submit a session
 submitSession(
   '2024-12-23-evening',
   [

@@ -3,7 +3,7 @@ API URL Configuration for Mahjong Score Tracker.
 Most API endpoints require bearer token authentication.
 Public endpoints: /teams/<slug>/exists/
 """
-from django.urls import path
+from django.urls import path, include
 from scores.api_views import (
     TeamExistsAPIView,
     ValidateTokenAPIView,
@@ -35,4 +35,7 @@ urlpatterns = [
     path('teams/<slug:team_slug>/sessions/<str:session_id>/delete/', 
          SessionDeleteAPIView.as_view(), 
          name='session_delete'),
+    
+    # Include teams API endpoints
+    path('', include('teams.api_urls')),
 ]
