@@ -91,7 +91,81 @@ Authorization: Bearer your-token-here
 
 ---
 
-### 2. Submit New Session
+### 2. Add Member to Team
+
+**Endpoint:** `POST /api/teams/{team_slug}/members/`
+
+**Description:** Add a new member to the team. Only team admins can add members to their teams.
+
+**Request Headers:**
+```http
+Authorization: Bearer your-token-here
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Player Name"
+}
+```
+
+**Parameters:**
+- `name` (string, required): Name of the new member
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Member 'Player Name' added to team successfully",
+  "member": {
+    "id": 1,
+    "name": "Player Name",
+    "join_date": "2025-12-31"
+  }
+}
+```
+
+**Error Responses:**
+
+*400 Bad Request - Member already exists:*
+```json
+{
+  "success": false,
+  "errors": {
+    "name": ["Member 'Player Name' already exists in team Team Alpha"]
+  }
+}
+```
+
+*400 Bad Request - Empty name:*
+```json
+{
+  "success": false,
+  "errors": {
+    "name": ["Member name cannot be empty"]
+  }
+}
+```
+
+*403 Forbidden - Not team admin:*
+```json
+{
+  "success": false,
+  "message": "You do not have permission to add members to this team"
+}
+```
+
+*404 Not Found - Team doesn't exist:*
+```json
+{
+  "detail": "Not found."
+}
+```
+
+---
+
+### 3. Submit New Session
 
 **Endpoint:** `POST /api/teams/{team_slug}/sessions/`
 
@@ -161,7 +235,7 @@ Content-Type: application/json
 
 ---
 
-### 3. Update Existing Session
+### 4. Update Existing Session
 
 **Endpoint:** `PUT /api/teams/{team_slug}/sessions/{session_id}/`
 
@@ -206,7 +280,7 @@ Content-Type: application/json
 
 ---
 
-### 4. Delete Session
+### 5. Delete Session
 
 **Endpoint:** `DELETE /api/teams/{team_slug}/sessions/{session_id}/delete/`
 
@@ -263,6 +337,23 @@ else:
     print("Invalid token!")
     exit(1)
 
+# Add a new member to the team
+add_member_payload = {
+    "name": "New Player"
+}
+
+add_member_response = requests.post(
+    f"{API_BASE_URL}/teams/my-team/members/",
+    headers=headers,
+    json=add_member_payload
+)
+
+if add_member_response.status_code == 201:
+    member_data = add_member_response.json()
+    print(f"Member added: {member_data['member']['name']}")
+else:
+    print(f"Failed to add member: {add_member_response.json()}")
+
 # Submit new session
 payload = {
     "session_id": "2024-12-23-evening",
@@ -285,6 +376,16 @@ print(response.json())
 ```
 
 ### cURL Example
+
+**Add a member:**
+```bash
+curl -X POST https://your-domain.com/api/teams/my-team/members/ \
+  -H "Authorization: Bearer your-token-here" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "New Player"}'
+```
+
+**Submit a session:**
 ```bash
 curl -X POST https://your-domain.com/api/teams/my-team/sessions/ \
   -H "Authorization: Bearer your-token-here" \
@@ -305,6 +406,12 @@ curl -X POST https://your-domain.com/api/teams/my-team/sessions/ \
 
 ## Validation Rules
 
+### Member Management
+1. **Member names must be unique** within a team
+2. **Member names cannot be empty** or contain only whitespace
+3. **Only team admins** can add members to their teams
+
+### Session Submission
 1. **Exactly 4 scores** must be submitted per session
 2. **Each member can only appear once** per session
 3. **Member must belong to the specified team**
