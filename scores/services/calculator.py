@@ -84,8 +84,8 @@ def get_team_standings_by_month(team, month, year):
     # Get all raw scores for this team in the specified month/year
     monthly_raw_scores = RawScore.objects.filter(
         member__team=team,
-        created_at__year=year,
-        created_at__month=month
+        session_date__year=year,
+        session_date__month=month
     )
     
     # If no scores in this month, return all members with 0 scores
