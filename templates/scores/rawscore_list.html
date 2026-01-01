@@ -25,6 +25,11 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3 style="margin: 0; color: #2c3e50;">
                         Session: <span style="font-family: monospace; color: #3498db;">{{ session.grouper }}</span>
+                        {% if session.list.0.archived %}
+                            <span style="background-color: #95a5a6; color: white; padding: 4px 12px; border-radius: 3px; font-size: 0.9rem; margin-left: 1rem;">
+                                📦 Archived
+                            </span>
+                        {% endif %}
                     </h3>
                     <div>
                         {% if session.list|length == 4 %}

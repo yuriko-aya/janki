@@ -13,6 +13,7 @@ class RawScore(models.Model):
     chombo = models.IntegerField(default=0)  # Number of chombos (bankruptcies) - can be stacked
     session_id = models.CharField(max_length=100, db_index=True)  # Groups 4 scores per session
     session_date = models.DateField(null=True, blank=True)  # Date of the game session (for historical records)
+    archived = models.BooleanField(default=False, db_index=True)  # Archived scores are excluded from standings
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -96,15 +97,16 @@ class CalculatedScore(models.Model):
         chombo_total = 0
         placement_counts = {1: 0, 2: 0, 3: 0, 4: 0}
         
-        # Get this member's raw scores to know which sessions they participated in
-        member_sessions = self.member.raw_scores.values_list('session_id', flat=True).distinct()
+        # Get this member's raw scores to know which sessions they participated in (exclude archived)
+        member_sessions = self.member.raw_scores.filter(archived=False).values_list('session_id', flat=True).distinct()
         
         # For each session this member participated in
         for session_id in member_sessions:
-            # Get ALL raw scores in this session from this team
+            # Get ALL raw scores in this session from this team (exclude archived)
             session_all_scores = RawScore.objects.filter(
                 member__team=self.member.team,
-                session_id=session_id
+                session_id=session_id,
+                archived=False
             )
             
             if session_all_scores.count() != 4:

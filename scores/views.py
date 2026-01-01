@@ -33,6 +33,7 @@ class RawScoreListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
+        # Show all scores (archived and non-archived) in admin view
         return RawScore.objects.filter(member__team=team).select_related('member').order_by('-session_date', '-created_at')
     
     def get_context_data(self, **kwargs):
@@ -230,7 +231,7 @@ class SessionsView(DetailView):
         if month < 1 or month > 12:
             month = today.month
         
-        # Get all sessions for this team in the selected month/year
+        # Get all sessions for this team in the selected month/year (include archived)
         from collections import defaultdict
         
         raw_scores = RawScore.objects.filter(
@@ -258,6 +259,7 @@ class SessionsView(DetailView):
             session_data = {
                 'session_id': session_id,
                 'session_date': scores[0].session_date or scores[0].created_at,
+                'archived': scores[0].archived,  # Add archived status
                 'scores': []
             }
             
@@ -333,3 +335,62 @@ class SessionsView(DetailView):
             context['is_team_admin'] = False
         
         return context
+
+
+class ArchiveManagementView(LoginRequiredMixin, FormView):
+    """Manage archived scores by year (admin view)."""
+    template_name = 'scores/archive_management.html'
+    
+    def get_form_class(self):
+        from scores.forms import ArchiveYearForm
+        return ArchiveYearForm
+    
+    def dispatch(self, request, *args, **kwargs):
+        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
+        if not team.admins.filter(user=request.user).exists():
+            raise PermissionDenied("You do not have permission to manage archives for this team.")
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
+        context['team'] = team
+        
+        from scores.services.calculator import get_archived_years, get_available_years
+        context['archived_years'] = get_archived_years(team)
+        context['available_years'] = get_available_years(team)
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
+        action = request.POST.get('action')
+        
+        from scores.forms import ArchiveYearForm
+        form = ArchiveYearForm(request.POST)
+        
+        if form.is_valid():
+            year = form.cleaned_data['year']
+            
+            from scores.services.calculator import archive_scores_by_year, unarchive_scores_by_year
+            
+            if action == 'archive':
+                count = archive_scores_by_year(team, year)
+                # Force recalculate all team members
+                for member in team.members.all():
+                    from scores.services.calculator import recalculate_member_score
+                    recalculate_member_score(member)
+                messages.success(request, f"Archived {count} scores from year {year}")
+            elif action == 'unarchive':
+                count = unarchive_scores_by_year(team, year)
+                # Force recalculate all team members
+                for member in team.members.all():
+                    from scores.services.calculator import recalculate_member_score
+                    recalculate_member_score(member)
+                messages.success(request, f"Unarchived {count} scores from year {year}")
+            else:
+                messages.error(request, "Invalid action")
+        else:
+            messages.error(request, "Invalid year")
+        
+        return redirect('scores:archive_management', team_slug=team.slug)

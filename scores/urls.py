@@ -12,4 +12,5 @@ urlpatterns = [
     path('<slug:team_slug>/raw/', views.RawScoreListView.as_view(), name='rawscore_list'),
     path('<slug:team_slug>/submit/', views.SessionSubmitView.as_view(), name='session_submit'),
     path('<slug:team_slug>/edit/<str:session_id>/', views.SessionEditView.as_view(), name='session_edit'),
+    path('<slug:team_slug>/archive/', views.ArchiveManagementView.as_view(), name='archive_management'),
 ]

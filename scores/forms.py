@@ -86,3 +86,17 @@ class SessionEditForm(SessionScoresForm):
         # Make session_id read-only since we're editing
         self.fields['session_id'].widget.attrs['readonly'] = True
         self.fields['session_id'].initial = session_id
+
+
+class ArchiveYearForm(forms.Form):
+    """Form for archiving/unarchiving scores by year."""
+    year = forms.IntegerField(
+        min_value=2000,
+        max_value=2100,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Year (e.g., 2025)'
+        }),
+        label='Year',
+        help_text='Enter the year to archive/unarchive'
+    )

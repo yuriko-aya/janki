@@ -9,6 +9,7 @@
         <a href="{% url 'teams:member_create' slug=team.slug %}" class="btn">+ Add Member</a>
         <a href="{% url 'scores:rawscore_list' team_slug=team.slug %}" class="btn" style="background-color: #3498db; margin-left: 0.5rem;">View All Sessions</a>
         <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60; margin-left: 0.5rem;">Submit Session</a>
+        <a href="{% url 'scores:archive_management' team_slug=team.slug %}" class="btn" style="background-color: #95a5a6; margin-left: 0.5rem;">📦 Archive</a>
     </div>
 </div>
 
