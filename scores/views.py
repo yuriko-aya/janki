@@ -33,7 +33,7 @@ class RawScoreListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        return RawScore.objects.filter(member__team=team).select_related('member').order_by('-created_at')
+        return RawScore.objects.filter(member__team=team).select_related('member').order_by('-session_date', '-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -235,9 +235,9 @@ class SessionsView(DetailView):
         
         raw_scores = RawScore.objects.filter(
             member__team=team,
-            created_at__year=year,
-            created_at__month=month
-        ).select_related('member').order_by('created_at', 'session_id')
+            session_date__year=year,
+            session_date__month=month
+        ).select_related('member').order_by('session_date', 'created_at', 'session_id')
         
         # Group by session_id
         sessions_dict = defaultdict(list)

@@ -7,11 +7,11 @@ from scores import api_admin
 
 @admin.register(RawScore)
 class RawScoreAdmin(admin.ModelAdmin):
-    list_display = ('member', 'score', 'session_id', 'created_at')
-    list_filter = ('created_at', 'member__team')
+    list_display = ('member', 'score', 'session_id', 'session_date', 'created_at')
+    list_filter = ('session_date', 'member__team')
     search_fields = ('member__name', 'session_id')
     readonly_fields = ('created_at', 'updated_at')
-    ordering = ('-created_at',)
+    ordering = ('-session_date', '-created_at')
 
 
 @admin.register(CalculatedScore)
