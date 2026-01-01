@@ -81,7 +81,7 @@ def get_team_standings_by_month(team, month, year):
     from django.db.models.functions import ExtractMonth, ExtractYear
     from teams.models import Member
     
-    # Get all raw scores for this team in the specified month/year
+    # Get all raw scores for this team in the specified month/year (include archived for monthly view)
     monthly_raw_scores = RawScore.objects.filter(
         member__team=team,
         session_date__year=year,
@@ -401,3 +401,141 @@ def get_session_details(session_id, team):
         })
     
     return session_details
+
+
+def archive_scores_by_year(team, year):
+    """
+    Archive all scores for a team for a specific year.
+    Archived scores are excluded from standings calculations.
+    Uses session_date if available, otherwise falls back to created_at.
+    
+    Args:
+        team: The Team object
+        year: Year to archive (YYYY)
+        
+    Returns:
+        Number of scores archived
+    """
+    from django.db.models import Q
+    from datetime import date
+    
+    # Create date range for the year
+    start_date = date(year, 1, 1)
+    end_date = date(year, 12, 31)
+    
+    # Filter scores by date range
+    scores_to_archive = RawScore.objects.filter(
+        member__team=team,
+        archived=False
+    ).filter(
+        Q(session_date__gte=start_date, session_date__lte=end_date) |
+        Q(created_at__date__gte=start_date, created_at__date__lte=end_date)
+    )
+    
+    # Get affected members BEFORE updating
+    affected_member_ids = list(scores_to_archive.values_list('member_id', flat=True).distinct())
+    
+    count = scores_to_archive.update(archived=True)
+    
+    # Recalculate all affected members
+    from teams.models import Member
+    affected_members = Member.objects.filter(id__in=affected_member_ids)
+    for member in affected_members:
+        recalculate_member_score(member)
+    
+    return count
+
+
+def unarchive_scores_by_year(team, year):
+    """
+    Unarchive all scores for a team for a specific year.
+    Uses session_date if available, otherwise falls back to created_at.
+    
+    Args:
+        team: The Team object
+        year: Year to unarchive (YYYY)
+        
+    Returns:
+        Number of scores unarchived
+    """
+    from django.db.models import Q
+    from datetime import date
+    
+    # Create date range for the year
+    start_date = date(year, 1, 1)
+    end_date = date(year, 12, 31)
+    
+    # Filter scores by date range
+    scores_to_unarchive = RawScore.objects.filter(
+        member__team=team,
+        archived=True
+    ).filter(
+        Q(session_date__gte=start_date, session_date__lte=end_date) |
+        Q(created_at__date__gte=start_date, created_at__date__lte=end_date)
+    )
+    
+    # Get affected members BEFORE updating
+    affected_member_ids = list(scores_to_unarchive.values_list('member_id', flat=True).distinct())
+    
+    count = scores_to_unarchive.update(archived=False)
+    
+    # Recalculate all affected members
+    from teams.models import Member
+    affected_members = Member.objects.filter(id__in=affected_member_ids)
+    for member in affected_members:
+        recalculate_member_score(member)
+    
+    return count
+
+
+def get_archived_years(team):
+    """
+    Get list of years that have archived scores for this team.
+    Uses session_date if available, otherwise falls back to created_at.
+    
+    Args:
+        team: The Team object
+        
+    Returns:
+        List of years (sorted descending)
+    """
+    from django.db.models import Q, Case, When, Value, IntegerField
+    from django.db.models.functions import Coalesce, ExtractYear
+    
+    archived_scores = RawScore.objects.filter(
+        member__team=team,
+        archived=True
+    ).annotate(
+        year_value=Coalesce(
+            ExtractYear('session_date'),
+            ExtractYear('created_at')
+        )
+    ).values_list('year_value', flat=True).distinct().order_by('-year_value')
+    
+    return list(archived_scores)
+
+
+def get_available_years(team):
+    """
+    Get list of all years that have scores (archived or not) for this team.
+    Uses session_date if available, otherwise falls back to created_at.
+    
+    Args:
+        team: The Team object
+        
+    Returns:
+        List of years (sorted descending)
+    """
+    from django.db.models.functions import Coalesce, ExtractYear
+    
+    all_scores = RawScore.objects.filter(
+        member__team=team
+    ).annotate(
+        year_value=Coalesce(
+            ExtractYear('session_date'),
+            ExtractYear('created_at')
+        )
+    ).values_list('year_value', flat=True).distinct().order_by('-year_value')
+    
+    return list(all_scores)
+
