@@ -23,6 +23,9 @@ class Team(models.Model):
     # Chombo (bankruptcy) configuration
     chombo_enabled = models.BooleanField(default=True, help_text='Enable chombo penalty (-30 points)')
     
+    # Visibility
+    hidden = models.BooleanField(default=False, db_index=True, help_text='Hide team from public team list')
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

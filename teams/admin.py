@@ -4,8 +4,8 @@ from teams.models import Team, Member
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'created_at')
-    list_filter = ('created_at',)
+    list_display = ('name', 'slug', 'hidden', 'created_at')
+    list_filter = ('hidden', 'created_at',)
     search_fields = ('name', 'slug')
     readonly_fields = ('slug', 'created_at', 'updated_at')
     prepopulated_fields = {'slug': ('name',)}
