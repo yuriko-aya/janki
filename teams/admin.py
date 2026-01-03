@@ -8,7 +8,6 @@ class TeamAdmin(admin.ModelAdmin):
     list_filter = ('hidden', 'created_at',)
     search_fields = ('name', 'slug')
     readonly_fields = ('slug', 'created_at', 'updated_at')
-    prepopulated_fields = {'slug': ('name',)}
 
 
 @admin.register(Member)
