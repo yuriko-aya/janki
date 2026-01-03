@@ -9,7 +9,7 @@ class TeamForm(forms.ModelForm):
     
     class Meta:
         model = Team
-        fields = ['name', 'start_point', 'target_point', 'uma_first', 'uma_second', 'uma_third', 'uma_fourth', 'chombo_enabled']
+        fields = ['name', 'start_point', 'target_point', 'uma_first', 'uma_second', 'uma_third', 'uma_fourth', 'chombo_enabled', 'hidden']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -42,6 +42,9 @@ class TeamForm(forms.ModelForm):
             'chombo_enabled': forms.CheckboxInput(attrs={
                 'class': 'form-check-input',
             }),
+            'hidden': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
         }
         labels = {
             'start_point': 'Starting Chips',
@@ -51,6 +54,7 @@ class TeamForm(forms.ModelForm):
             'uma_third': '3rd Place Uma',
             'uma_fourth': '4th Place Uma',
             'chombo_enabled': 'Enable Chombo Penalty (-30 points)',
+            'hidden': 'Hide from Team List (team is still accessible via direct link)',
         }
 
 

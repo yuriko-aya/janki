@@ -25,6 +25,10 @@ class TeamListView(ListView):
     context_object_name = 'teams'
     paginate_by = 20
     
+    def get_queryset(self):
+        # Exclude hidden teams from public list
+        return Team.objects.filter(hidden=False)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.user.is_authenticated:
