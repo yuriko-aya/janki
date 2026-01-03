@@ -139,6 +139,25 @@
             </div>
         </div>
         
+        <!-- Visibility Configuration -->
+        <div style="margin-top: 1.5rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 4px;">
+            <h3 style="margin-top: 0; margin-bottom: 1rem; color: #2c3e50;">Team Visibility</h3>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    {{ form.hidden }}
+                    {{ form.hidden.label_tag }}
+                </div>
+                <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 0.5rem;">When enabled, team will be hidden from the public team list but still accessible via direct link. Team admins can always see their hidden teams.</p>
+                {% if form.hidden.errors %}
+                    <div style="color: #e74c3c; margin-top: 0.5rem;">
+                        {% for error in form.hidden.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
         <div style="margin-top: 2rem; display: flex; gap: 1rem;">
             <button type="submit" class="btn">{% if form.instance.pk %}Update Team{% else %}Create Team{% endif %}</button>
             <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6;">Cancel</a>

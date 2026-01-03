@@ -23,6 +23,9 @@
                     <a href="{% url 'teams:team_detail' slug=team.slug %}" style="color: #2c3e50; text-decoration: none;">
                         {{ team.name }}
                     </a>
+                    {% if team.hidden and team.id in user_admin_team_ids %}
+                        <span style="background-color: #f39c12; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">HIDDEN</span>
+                    {% endif %}
                 </h2>
                 <p style="margin-bottom: 0.5rem;"><strong>Members:</strong> {{ team.members.count }}</p>
                 <p style="margin-bottom: 1rem;"><strong>Created:</strong> {{ team.created_at|date:"M d, Y" }}</p>

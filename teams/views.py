@@ -26,8 +26,16 @@ class TeamListView(ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        # Exclude hidden teams from public list
-        return Team.objects.filter(hidden=False)
+        # Show all public teams, plus hidden teams where user is admin
+        queryset = Team.objects.filter(hidden=False)
+        
+        if self.request.user.is_authenticated:
+            # Include hidden teams where user is admin
+            admin_team_ids = TeamAdmin.objects.filter(user=self.request.user).values_list('team_id', flat=True)
+            hidden_admin_teams = Team.objects.filter(id__in=admin_team_ids, hidden=True)
+            queryset = queryset | hidden_admin_teams
+        
+        return queryset.distinct().order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
