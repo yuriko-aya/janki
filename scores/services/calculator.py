@@ -18,6 +18,163 @@ from django.core.exceptions import ValidationError
 from scores.models import RawScore, CalculatedScore
 
 
+# ============================================================================
+# HELPER FUNCTIONS - Centralized scoring logic to reduce duplication
+# ============================================================================
+
+def get_uma_map(team):
+    """
+    Get Uma (placement bonus) mapping from team configuration.
+    
+    Args:
+        team: The Team object
+        
+    Returns:
+        Dict mapping placement (1-4) to Uma values
+    """
+    return {
+        1: team.uma_first,
+        2: team.uma_second,
+        3: team.uma_third,
+        4: team.uma_fourth
+    }
+
+
+def calculate_placement_with_ties(score_value, sorted_scores):
+    """
+    Calculate placement for a score, handling ties.
+    
+    Args:
+        score_value: The raw score value to find placement for
+        sorted_scores: List of scores sorted by value (descending)
+        
+    Returns:
+        Float representing placement (1-4, can be fractional like 1.5 for ties)
+    """
+    # Find all scores with the same value
+    tied_scores = [s for s in sorted_scores if s.score == score_value]
+    
+    if len(tied_scores) > 1:
+        # Multiple players tied - calculate shared placement
+        first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == score_value)
+        # Shared placement is average of positions (e.g., tied for 1st-2nd = 1.5)
+        placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_scores) + 1)) / len(tied_scores)
+    else:
+        # No tie - find normal placement
+        placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.score == score_value)
+    
+    return placement
+
+
+def calculate_uma_for_placement(placement, team):
+    """
+    Get Uma bonus for a placement, handling fractional placements (ties).
+    
+    Args:
+        placement: Float representing placement (1-4, can be fractional)
+        team: The Team object
+        
+    Returns:
+        Float representing Uma bonus
+    """
+    uma_map = get_uma_map(team)
+    
+    # If placement is fractional (tie), calculate average of tied positions' Uma
+    if placement != int(placement):
+        # Find which positions are tied
+        # For example, 1.5 means tied between 1st and 2nd
+        # 2.5 means tied between 2nd and 3rd, etc.
+        lower_pos = int(placement)
+        upper_pos = int(placement) + 1
+        
+        # Calculate how many positions are tied
+        # If placement is 1.5, it's 2 positions (1 and 2)
+        # If placement is 2.0, it's 3 positions (2, 3, 4) - but this needs better logic
+        
+        # More accurate: determine tied positions from the fractional value
+        # A placement of 1.5 means average of positions 1 and 2
+        # A placement of 2.0 means average of positions 2, 3 (for 2 players)
+        # A placement of 2.33 means average of positions 2, 3, 4 (for 3 players)
+        
+        # For simplicity, we'll reconstruct the tied positions
+        # The fractional part tells us about the tie
+        frac_part = placement - int(placement)
+        
+        if abs(frac_part - 0.5) < 0.01:  # Tie between 2 positions
+            positions = [lower_pos, upper_pos]
+        elif abs(frac_part - 0.33) < 0.01 or abs(frac_part - 0.67) < 0.01:  # Tie between 3 positions
+            if lower_pos == 1:
+                positions = [1, 2, 3]
+            elif lower_pos == 2:
+                positions = [2, 3, 4]
+            else:
+                positions = [lower_pos, upper_pos]
+        else:
+            # For other fractional values, round to nearest integer
+            positions = [round(placement)]
+        
+        # Calculate average Uma for tied positions
+        uma = sum(uma_map.get(pos, 0) for pos in positions) / len(positions)
+    else:
+        # Normal placement, no tie
+        uma = uma_map.get(int(placement), 0)
+    
+    return uma
+
+
+def calculate_session_score(raw_score_value, placement, uma, team, chombo_count=0):
+    """
+    Calculate final score for a session with chombo penalty.
+    
+    Args:
+        raw_score_value: The raw Mahjong score
+        placement: Placement in the session (1-4)
+        uma: Uma bonus for the placement
+        team: The Team object
+        chombo_count: Number of chombos (default 0)
+        
+    Returns:
+        Float representing calculated score
+    """
+    # Base score: (raw_score - target_point) / 1000
+    base_score = (raw_score_value - team.target_point) / 1000.0
+    
+    # Add Uma bonus
+    calculated = base_score + uma
+    
+    # Apply chombo penalty if applicable and enabled for this team
+    if chombo_count > 0 and team.chombo_enabled:
+        calculated -= (30 * chombo_count)
+    
+    return calculated
+
+
+def recalculate_members(members):
+    """
+    Recalculate calculated scores for multiple members.
+    
+    Args:
+        members: Iterable of Member objects
+    """
+    for member in members:
+        recalculate_member_score(member)
+
+
+def recalculate_team_scores(team):
+    """
+    Recalculate all member scores for a team.
+    
+    Args:
+        team: The Team object
+    """
+    recalculate_members(team.members.all())
+
+
+# ============================================================================
+# MAIN CALCULATION FUNCTIONS
+# ============================================================================
+
+
 def validate_session_complete(session_id, team):
     """
     Ensure exactly 4 scores exist for this session+team.

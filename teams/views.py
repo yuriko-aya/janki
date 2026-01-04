@@ -14,6 +14,7 @@ from hashlib import sha256
 from cryptography.fernet import Fernet, InvalidToken
 from teams.models import Team, Member
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
+from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 from accounts.models import TeamAdmin
 from scores.services.calculator import get_team_standings, get_inactive_members
 
@@ -48,7 +49,7 @@ class TeamListView(ListView):
         return context
 
 
-class TeamDetailView(DetailView):
+class TeamDetailView(TeamSlugMixin, TeamContextMixin, DetailView):
     """Display team details and standings (public view - no auth required)."""
     model = Team
     template_name = 'teams/team_detail.html'
@@ -58,15 +59,9 @@ class TeamDetailView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        team = self.get_object()
         # Get standings sorted by calculated score
-        context['standings'] = get_team_standings(team)
-        context['inactive_members'] = get_inactive_members(team)
-        # Check if user is admin
-        if self.request.user.is_authenticated:
-            context['is_team_admin'] = team.admins.filter(user=self.request.user).exists()
-        else:
-            context['is_team_admin'] = False
+        context['standings'] = get_team_standings(self.team)
+        context['inactive_members'] = get_inactive_members(self.team)
         return context
 
 
@@ -84,7 +79,7 @@ class TeamCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class TeamUpdateView(LoginRequiredMixin, UpdateView):
+class TeamUpdateView(TeamAdminRequiredMixin, UpdateView):
     """Update a team (admin-only - checks user is team admin)."""
     model = Team
     form_class = TeamForm
@@ -92,54 +87,30 @@ class TeamUpdateView(LoginRequiredMixin, UpdateView):
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
     
-    def dispatch(self, request, *args, **kwargs):
-        team = self.get_object()
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to edit this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_success_url(self):
         return reverse_lazy('teams:team_detail', kwargs={'slug': self.object.slug})
 
 
-class MemberListView(DetailView):
+class MemberListView(TeamAdminRequiredMixin, DetailView):
     """Display all members of a team (admin view)."""
     model = Team
     template_name = 'teams/member_list.html'
     context_object_name = 'team'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
-    
-    def dispatch(self, request, *args, **kwargs):
-        team = self.get_object()
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to manage this team.")
-        return super().dispatch(request, *args, **kwargs)
 
 
-class MemberCreateView(LoginRequiredMixin, CreateView):
+class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
     """Add a new member to a team (admin-only)."""
     model = Member
     form_class = MemberForm
     template_name = 'teams/member_form.html'
     
-    def dispatch(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['slug'])
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to manage this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def form_valid(self, form):
-        team = get_object_or_404(Team, slug=self.kwargs['slug'])
         member = form.save(commit=False)
-        member.team = team
+        member.team = self.team
         member.save()
-        return redirect('teams:member_list', slug=team.slug)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['team'] = get_object_or_404(Team, slug=self.kwargs['slug'])
-        return context
+        return redirect('teams:member_list', slug=self.team.slug)
 
 
 class MemberUpdateView(LoginRequiredMixin, UpdateView):
@@ -151,7 +122,7 @@ class MemberUpdateView(LoginRequiredMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         member = self.get_object()
         self.team_slug = member.team.slug
-        if not member.team.admins.filter(user=request.user).exists():
+        if not member.team.is_admin(request.user):
             raise PermissionDenied("You do not have permission to manage this member.")
         return super().dispatch(request, *args, **kwargs)
     
@@ -172,7 +143,7 @@ class MemberDeleteView(LoginRequiredMixin, DeleteView):
     def dispatch(self, request, *args, **kwargs):
         member = self.get_object()
         self.team_slug = member.team.slug
-        if not member.team.admins.filter(user=request.user).exists():
+        if not member.team.is_admin(request.user):
             raise PermissionDenied("You do not have permission to manage this member.")
         return super().dispatch(request, *args, **kwargs)
     
@@ -180,7 +151,7 @@ class MemberDeleteView(LoginRequiredMixin, DeleteView):
         return reverse_lazy('teams:member_list', kwargs={'slug': self.team_slug})
 
 
-class TeamAdminListView(LoginRequiredMixin, DetailView):
+class TeamAdminListView(TeamAdminRequiredMixin, DetailView):
     """Display all admins of a team and allow adding/removing admins."""
     model = Team
     template_name = 'teams/team_admin_list.html'
@@ -188,49 +159,34 @@ class TeamAdminListView(LoginRequiredMixin, DetailView):
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
     
-    def dispatch(self, request, *args, **kwargs):
-        team = self.get_object()
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to manage this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        team = self.get_object()
-        context['team_admins'] = team.admins.all().select_related('user')
-        context['form'] = AddTeamAdminForm(team=team)
+        context['team_admins'] = self.team.admins.all().select_related('user')
+        context['form'] = AddTeamAdminForm(team=self.team)
         return context
 
 
-class AddTeamAdminView(LoginRequiredMixin, FormView):
+class AddTeamAdminView(TeamAdminRequiredMixin, FormView):
     """Add a new admin to a team."""
     form_class = AddTeamAdminForm
     template_name = 'teams/team_admin_list.html'
     
-    def dispatch(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['slug'])
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to manage this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['team'] = get_object_or_404(Team, slug=self.kwargs['slug'])
+        kwargs['team'] = self.team
         return kwargs
     
     def form_valid(self, form):
-        team = get_object_or_404(Team, slug=self.kwargs['slug'])
         username = form.cleaned_data['username']
         user = User.objects.get(username=username)
         
-        TeamAdmin.objects.create(team=team, user=user)
+        TeamAdmin.objects.create(team=self.team, user=user)
         messages.success(self.request, f"User '{username}' has been added as a team admin.")
-        return redirect('teams:admin_list', slug=team.slug)
+        return redirect('teams:admin_list', slug=self.team.slug)
     
     def form_invalid(self, form):
-        team = get_object_or_404(Team, slug=self.kwargs['slug'])
         messages.error(self.request, "Error adding admin. Please check the form.")
-        return redirect('teams:admin_list', slug=team.slug)
+        return redirect('teams:admin_list', slug=self.team.slug)
 
 
 class RemoveTeamAdminView(LoginRequiredMixin, DeleteView):
@@ -243,7 +199,7 @@ class RemoveTeamAdminView(LoginRequiredMixin, DeleteView):
         team = team_admin.team
         
         # Check if user is an admin of this team
-        if not team.admins.filter(user=request.user).exists():
+        if not team.is_admin(request.user):
             raise PermissionDenied("You do not have permission to manage this team.")
         
         # Prevent removing the last admin

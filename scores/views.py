@@ -13,54 +13,36 @@ from scores.services.calculator import (
     submit_session_scores,
     update_session_scores,
     get_team_standings,
-    get_team_standings_by_month
+    get_team_standings_by_month,
+    recalculate_team_scores
 )
 from teams.models import Team
+from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 
 
-class RawScoreListView(LoginRequiredMixin, ListView):
+class RawScoreListView(TeamAdminRequiredMixin, TeamContextMixin, ListView):
     """List all raw scores for a team (admin view)."""
     model = RawScore
     template_name = 'scores/rawscore_list.html'
     context_object_name = 'scores'
     paginate_by = 50
     
-    def dispatch(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to view this team's scores.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_queryset(self):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
         # Show all scores (archived and non-archived) in admin view
-        return RawScore.objects.filter(member__team=team).select_related('member').order_by('-session_date', '-created_at')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['team'] = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        return context
+        return RawScore.objects.filter(member__team=self.team).select_related('member').order_by('-session_date', '-created_at')
 
 
-class SessionSubmitView(LoginRequiredMixin, FormView):
+class SessionSubmitView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
     """Submit all 4 scores for a session at once."""
     form_class = SessionScoresForm
     template_name = 'scores/session_submit.html'
     
-    def dispatch(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to submit scores for this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        kwargs['team'] = team
+        kwargs['team'] = self.team
         return kwargs
     
     def form_valid(self, form):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
         session_id = form.cleaned_data['session_id']
         session_date = form.cleaned_data.get('session_date')
         
@@ -78,41 +60,29 @@ class SessionSubmitView(LoginRequiredMixin, FormView):
                 })
         
         try:
-            submit_session_scores(session_id, team, score_data, session_date=session_date)
+            submit_session_scores(session_id, self.team, score_data, session_date=session_date)
             messages.success(self.request, f"Session {session_id} scores submitted successfully!")
-            return redirect('teams:member_list', slug=team.slug)
+            return redirect('teams:member_list', slug=self.team.slug)
         except Exception as e:
             messages.error(self.request, f"Error submitting scores: {str(e)}")
             return self.form_invalid(form)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['team'] = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        return context
 
 
-class SessionEditView(LoginRequiredMixin, FormView):
+class SessionEditView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
     """Edit all 4 scores for an existing session."""
     form_class = SessionEditForm
     template_name = 'scores/session_edit.html'
     
-    def dispatch(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to edit scores for this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
         session_id = self.kwargs['session_id']
-        kwargs['team'] = team
+        kwargs['team'] = self.team
         kwargs['session_id'] = session_id
         
         # Pre-populate form with existing scores if not POST
         if self.request.method != 'POST':
             raw_scores = RawScore.objects.filter(
-                member__team=team,
+                member__team=self.team,
                 session_id=session_id
             ).select_related('member').order_by('placement')
             
@@ -130,7 +100,6 @@ class SessionEditView(LoginRequiredMixin, FormView):
         return kwargs
     
     def form_valid(self, form):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
         session_id = self.kwargs['session_id']
         session_date = form.cleaned_data.get('session_date')
         
@@ -148,22 +117,21 @@ class SessionEditView(LoginRequiredMixin, FormView):
                 })
         
         try:
-            update_session_scores(session_id, team, score_data, session_date=session_date)
+            update_session_scores(session_id, self.team, score_data, session_date=session_date)
             messages.success(self.request, f"Session {session_id} updated successfully!")
-            return redirect('teams:member_list', slug=team.slug)
+            return redirect('teams:member_list', slug=self.team.slug)
         except Exception as e:
             messages.error(self.request, f"Error updating scores: {str(e)}")
             return self.form_invalid(form)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['team'] = get_object_or_404(Team, slug=self.kwargs['team_slug'])
         context['session_id'] = self.kwargs['session_id']
         context['is_edit'] = True
         return context
 
 
-class StandingsView(DetailView):
+class StandingsView(TeamSlugMixin, TeamContextMixin, DetailView):
     """Display team standings (public view - shows calculated scores only).
     
     Supports filtering by month/year. Default is current month.
@@ -177,7 +145,6 @@ class StandingsView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        team = self.get_object()
         
         # Get month and year from request parameters, default to current
         today = date.today()
@@ -189,7 +156,7 @@ class StandingsView(DetailView):
             month = today.month
         
         # Get standings filtered by month/year
-        standings = get_team_standings_by_month(team, month, year)
+        standings = get_team_standings_by_month(self.team, month, year)
         for rank, member in enumerate(standings, start=1):
             member.rank = rank
         
@@ -202,7 +169,7 @@ class StandingsView(DetailView):
         return context
 
 
-class SessionsView(DetailView):
+class SessionsView(TeamSlugMixin, TeamContextMixin, DetailView):
     """Display session details (public view - shows all sessions for a month).
     
     Supports filtering by month/year. Default is current month.
@@ -217,9 +184,9 @@ class SessionsView(DetailView):
     
     def get_context_data(self, **kwargs):
         from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+        from collections import defaultdict
         
         context = super().get_context_data(**kwargs)
-        team = self.get_object()
         
         # Get month and year from request parameters, default to current
         today = date.today()
@@ -232,10 +199,8 @@ class SessionsView(DetailView):
             month = today.month
         
         # Get all sessions for this team in the selected month/year (include archived)
-        from collections import defaultdict
-        
         raw_scores = RawScore.objects.filter(
-            member__team=team,
+            member__team=self.team,
             session_date__year=year,
             session_date__month=month
         ).select_related('member').order_by('session_date', 'created_at', 'session_id')
@@ -265,10 +230,10 @@ class SessionsView(DetailView):
             
             # Uma map using team's settings
             uma_map = {
-                1: team.uma_first,
-                2: team.uma_second,
-                3: team.uma_third,
-                4: team.uma_fourth
+                1: self.team.uma_first,
+                2: self.team.uma_second,
+                3: self.team.uma_third,
+                4: self.team.uma_fourth
             }
             
             for idx, raw_score in enumerate(sorted_scores):
@@ -290,11 +255,11 @@ class SessionsView(DetailView):
                     uma = uma_map.get(placement, 0)
                 
                 # Calculate base score
-                base_score = (raw_score.score - team.target_point) / 1000.0
+                base_score = (raw_score.score - self.team.target_point) / 1000.0
                 
                 # Calculate final score
                 calculated = base_score + uma
-                if raw_score.chombo > 0 and team.chombo_enabled:
+                if raw_score.chombo > 0 and self.team.chombo_enabled:
                     calculated -= (30 * raw_score.chombo)
                 
                 session_data['scores'].append({
@@ -328,16 +293,10 @@ class SessionsView(DetailView):
         context['months'] = list(range(1, 13))
         context['current_year'] = today.year
         
-        # Check if user is admin
-        if self.request.user.is_authenticated:
-            context['is_team_admin'] = team.admins.filter(user=self.request.user).exists()
-        else:
-            context['is_team_admin'] = False
-        
         return context
 
 
-class ArchiveManagementView(LoginRequiredMixin, FormView):
+class ArchiveManagementView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
     """Manage archived scores by year (admin view)."""
     template_name = 'scores/archive_management.html'
     
@@ -345,25 +304,16 @@ class ArchiveManagementView(LoginRequiredMixin, FormView):
         from scores.forms import ArchiveYearForm
         return ArchiveYearForm
     
-    def dispatch(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        if not team.admins.filter(user=request.user).exists():
-            raise PermissionDenied("You do not have permission to manage archives for this team.")
-        return super().dispatch(request, *args, **kwargs)
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
-        context['team'] = team
         
         from scores.services.calculator import get_archived_years, get_available_years
-        context['archived_years'] = get_archived_years(team)
-        context['available_years'] = get_available_years(team)
+        context['archived_years'] = get_archived_years(self.team)
+        context['available_years'] = get_available_years(self.team)
         
         return context
     
     def post(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, slug=self.kwargs['team_slug'])
         action = request.POST.get('action')
         
         from scores.forms import ArchiveYearForm
@@ -375,22 +325,18 @@ class ArchiveManagementView(LoginRequiredMixin, FormView):
             from scores.services.calculator import archive_scores_by_year, unarchive_scores_by_year
             
             if action == 'archive':
-                count = archive_scores_by_year(team, year)
+                count = archive_scores_by_year(self.team, year)
                 # Force recalculate all team members
-                for member in team.members.all():
-                    from scores.services.calculator import recalculate_member_score
-                    recalculate_member_score(member)
+                recalculate_team_scores(self.team)
                 messages.success(request, f"Archived {count} scores from year {year}")
             elif action == 'unarchive':
-                count = unarchive_scores_by_year(team, year)
+                count = unarchive_scores_by_year(self.team, year)
                 # Force recalculate all team members
-                for member in team.members.all():
-                    from scores.services.calculator import recalculate_member_score
-                    recalculate_member_score(member)
+                recalculate_team_scores(self.team)
                 messages.success(request, f"Unarchived {count} scores from year {year}")
             else:
                 messages.error(request, "Invalid action")
         else:
             messages.error(request, "Invalid year")
         
-        return redirect('scores:archive_management', team_slug=team.slug)
+        return redirect('scores:archive_management', team_slug=self.team.slug)

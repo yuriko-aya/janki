@@ -11,9 +11,16 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 from teams.models import Team, Member
 from scores.models import RawScore
-from scores.services.calculator import submit_session_scores, update_session_scores
+from scores.services.calculator import submit_session_scores, update_session_scores, recalculate_member_score
 from scores.api_serializers import SessionScoresSerializer
 from scores.authentication import BearerMultiTokenAuthentication
+from scores.api_utils import (
+    success_response,
+    error_response,
+    permission_denied_response,
+    not_found_response,
+    validation_error_response
+)
 
 
 class TeamExistsAPIView(APIView):
@@ -143,16 +150,13 @@ class SessionSubmitAPIView(APIView):
         team = get_object_or_404(Team, slug=team_slug)
         
         # Check if user is team admin
-        if not team.admins.filter(user=request.user).exists():
-            return Response(
-                {'error': 'You do not have permission to submit scores for this team.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not team.is_admin(request.user):
+            return permission_denied_response('You do not have permission to submit scores for this team.')
         
         # Validate request data
         serializer = SessionScoresSerializer(data=request.data, context={'team': team})
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return validation_error_response(serializer.errors)
         
         # Extract validated data
         session_id = serializer.validated_data['session_id']
@@ -193,20 +197,16 @@ class SessionSubmitAPIView(APIView):
                 session_date=session_date
             )
             
-            return Response(
+            return success_response(
+                f'Session {session_id} scores submitted successfully',
                 {
-                    'success': True,
-                    'message': f'Session {session_id} scores submitted successfully',
                     'session_id': session_id,
                     'scores_created': len(created_scores)
                 },
-                status=status.HTTP_201_CREATED
+                status.HTTP_201_CREATED
             )
         except (DjangoValidationError, Exception) as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response(str(e))
 
 
 class SessionUpdateAPIView(APIView):
@@ -234,11 +234,8 @@ class SessionUpdateAPIView(APIView):
         team = get_object_or_404(Team, slug=team_slug)
         
         # Check if user is team admin
-        if not team.admins.filter(user=request.user).exists():
-            return Response(
-                {'error': 'You do not have permission to update scores for this team.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not team.is_admin(request.user):
+            return permission_denied_response('You do not have permission to update scores for this team.')
         
         # Check if session exists
         existing_scores = RawScore.objects.filter(
@@ -246,17 +243,12 @@ class SessionUpdateAPIView(APIView):
             session_id=session_id
         )
         if not existing_scores.exists():
-            return Response(
-                {
-                    'error': f'Session {session_id} does not exist. Use POST to create.',
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return not_found_response(f'Session {session_id} does not exist. Use POST to create.')
         
         # Validate request data
         serializer = SessionScoresSerializer(data=request.data, context={'team': team})
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return validation_error_response(serializer.errors)
         
         # Extract validated data
         session_date = serializer.validated_data.get('session_date')
@@ -282,20 +274,16 @@ class SessionUpdateAPIView(APIView):
                 session_date=session_date
             )
             
-            return Response(
+            return success_response(
+                f'Session {session_id} updated successfully',
                 {
-                    'success': True,
-                    'message': f'Session {session_id} updated successfully',
                     'session_id': session_id,
                     'scores_updated': len(updated_scores)
                 },
-                status=status.HTTP_200_OK
+                status.HTTP_200_OK
             )
         except (DjangoValidationError, Exception) as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return error_response(str(e))
 
 
 class SessionDeleteAPIView(APIView):
@@ -320,11 +308,8 @@ class SessionDeleteAPIView(APIView):
         team = get_object_or_404(Team, slug=team_slug)
         
         # Check if user is team admin
-        if not team.admins.filter(user=request.user).exists():
-            return Response(
-                {'error': 'You do not have permission to delete scores for this team.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not team.is_admin(request.user):
+            return permission_denied_response('You do not have permission to delete scores for this team.')
         
         # Get session scores
         session_scores = RawScore.objects.filter(
@@ -333,10 +318,7 @@ class SessionDeleteAPIView(APIView):
         )
         
         if not session_scores.exists():
-            return Response(
-                {'error': f'Session {session_id} does not exist.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return not_found_response(f'Session {session_id} does not exist.')
         
         # Delete scores and recalculate affected members
         affected_members = set(score.member for score in session_scores)
@@ -344,15 +326,10 @@ class SessionDeleteAPIView(APIView):
         session_scores.delete()
         
         # Recalculate all affected members
-        from scores.services.calculator import recalculate_member_score
         for member in affected_members:
             recalculate_member_score(member)
         
-        return Response(
-            {
-                'success': True,
-                'message': f'Session {session_id} deleted successfully',
-                'scores_deleted': count
-            },
-            status=status.HTTP_200_OK
+        return success_response(
+            f'Session {session_id} deleted successfully',
+            {'scores_deleted': count}
         )
