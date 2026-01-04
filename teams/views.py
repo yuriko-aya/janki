@@ -15,7 +15,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from teams.models import Team, Member
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from accounts.models import TeamAdmin
-from scores.services.calculator import get_team_standings
+from scores.services.calculator import get_team_standings, get_inactive_members
 
 
 class TeamListView(ListView):
@@ -61,6 +61,7 @@ class TeamDetailView(DetailView):
         team = self.get_object()
         # Get standings sorted by calculated score
         context['standings'] = get_team_standings(team)
+        context['inactive_members'] = get_inactive_members(team)
         # Check if user is admin
         if self.request.user.is_authenticated:
             context['is_team_admin'] = team.admins.filter(user=self.request.user).exists()

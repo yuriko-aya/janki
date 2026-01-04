@@ -51,7 +51,7 @@ def recalculate_member_score(member):
 
 def get_team_standings(team):
     """
-    Get all team members with their calculated scores, sorted by total (descending).
+    Get all active team members with their calculated scores, sorted by total (descending).
     
     Args:
         team: The Team object
@@ -60,7 +60,20 @@ def get_team_standings(team):
         QuerySet of Members with calculated scores, sorted by total descending
     """
     members = team.members.select_related('calculated_score').order_by('-calculated_score__total')
-    return members
+    return (m for m in members if m.calculated_score and m.calculated_score.games_played > 0)
+
+def get_inactive_members(team):
+    """
+    Get all inactive team members with their calculated scores, sorted by total (descending).
+    
+    Args:
+        team: The Team object
+        
+    Returns:
+        QuerySet of Members with calculated scores, sorted by total descending
+    """
+    members = team.members.select_related('calculated_score').order_by('-calculated_score__total')
+    return (m for m in members if m.calculated_score and m.calculated_score.games_played == 0)
 
 
 def get_team_standings_by_month(team, month, year):
@@ -206,7 +219,7 @@ def get_team_standings_by_month(team, month, year):
             member.monthly_fourth_place = 0
     
     # Sort by monthly total
-    return sorted(members, key=lambda m: m.monthly_total, reverse=True)
+    return sorted((m for m in members if m.monthly_games > 0), key=lambda m: m.monthly_total, reverse=True)
 
 
 def submit_session_scores(session_id, team, score_data, session_date=None):
