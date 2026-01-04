@@ -75,7 +75,7 @@
     <div class="team-main-content">
         <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <div class="standings-header">
-                <h3 style="margin: 0;">Members</h3>
+                <h3 style="margin: 0;"> Active Members</h3>
                 <div class="standings-actions">
                     <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.9rem;">View Standings</a>
                     <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">View Sessions</a>
@@ -207,6 +207,23 @@
                 <p style="color: #999; text-align: center; padding: 2rem;">No members yet.</p>
             {% endif %}
         </div>
+        {% if inactive_members %}
+            <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 1rem;">
+                <div class="standings-header">
+                    <h3 style="margin: 0;">Inactive Members</h3>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    {% for member in inactive_members %}
+                        <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>{{ member.name }}</span>
+                                <span style="color: #999; font-size: 0.85rem; font-style: italic;">No games played</span>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
     </div>
 </div>
 
