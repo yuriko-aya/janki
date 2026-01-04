@@ -90,16 +90,16 @@
                             <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
                                 Name <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable hide-mobile" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
+                            <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
                                 Total Score <span class="sort-indicator">▼</span>
                             </th>
                             <th class="sortable hide-mobile" data-sort="games" style="text-align: right; cursor: pointer; user-select: none;">
                                 Games <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-mobile" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
                                 Avg/Game <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable hide-mobile" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
+                            <th class="sortable" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
                                 Avg Place <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable hide-tablet" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
@@ -154,7 +154,7 @@
                                         0.00
                                     {% endif %}
                                 </td>
-                                <td class="hide-mobile" style="text-align: right;">
+                                <td style="text-align: right;">
                                     {% if member.calculated_score and member.calculated_score.average_placement > 0 %}
                                         {{ member.calculated_score.average_placement|floatformat:2 }}
                                     {% else %}
