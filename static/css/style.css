@@ -624,3 +624,99 @@ footer {
         width: 100%;
     }
 }
+
+/* Sessions Page - Responsive Styles */
+.session-card {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.session-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.scoring-formula-info {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #ddd;
+    flex-wrap: wrap;
+}
+
+/* Mobile responsive layout for sessions */
+@media (max-width: 768px) {
+    .session-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .session-header h3 {
+        font-size: 1rem;
+        word-break: break-all;
+    }
+    
+    .session-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .session-card {
+        padding: 1rem;
+    }
+    
+    .scoring-formula-info {
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+    
+    .pagination-controls {
+        gap: 0.25rem;
+    }
+    
+    .pagination-controls .btn,
+    .pagination-controls span {
+        padding: 6px 8px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .session-header h3 {
+        font-size: 0.9rem;
+    }
+    
+    .session-actions a.btn {
+        font-size: 0.75rem !important;
+        padding: 4px 8px !important;
+        margin-left: 0 !important;
+    }
+    
+    .scoring-formula-info {
+        display: none; /* Hide complex formula on very small screens */
+    }
+}

@@ -4,27 +4,33 @@
 {% block title %}{{ team.name }} Sessions - Mahjong Score Tracker{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h1 class="team-title"><a href="{% url 'teams:team_detail' slug=team.slug %}">{{ team.name }}</a> - Session Details</h1>
-    <div style="display: flex; gap: 1rem;">
+<div class="team-header">
+    <div class="team-header-info">
+        <h1 class="team-title"><a href="{% url 'teams:team_detail' slug=team.slug %}">{{ team.name }}</a> - Session Details</h1>
+    </div>
+    <div class="team-header-actions">
         <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Standings</a>
     </div>
 </div>
 
 <!-- Month/Year Filter -->
 <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem;">
-    <form method="get" style="display: flex; gap: 1rem; align-items: center;">
-        <label for="month" style="font-weight: bold;">Month:</label>
-        <select name="month" id="month" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-            {% for m in months %}
-                <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
-                    {{ m|short_month_name }}
-                </option>
-            {% endfor %}
-        </select>
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label for="month" style="font-weight: bold;">Month:</label>
+            <select name="month" id="month" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                {% for m in months %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ m|short_month_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
         
-        <label for="year" style="font-weight: bold; margin-left: 1rem;">Year:</label>
-        <input type="number" name="year" id="year" value="{{ selected_year }}" min="2020" max="{{ current_year }}" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100px;">
+        <div class="filter-group">
+            <label for="year" style="font-weight: bold;">Year:</label>
+            <input type="number" name="year" id="year" value="{{ selected_year }}" min="2020" max="{{ current_year }}" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100px;">
+        </div>
         
         <button type="submit" class="btn" style="background-color: #3498db; color: white; padding: 0.5rem 1rem;">Filter</button>
     </form>
@@ -36,7 +42,7 @@
             Sessions - {{ selected_month|month_name_filter }} {{ selected_year }}
         </h2>
         
-        <p style="color: #666; font-style: italic; margin-bottom: 2rem;">
+        <p class="scoring-formula-info">
             <strong>Scoring Formula:</strong> Base Score = (Raw Score - {{ team.target_point }}) ÷ 1,000 | 
             <strong>Uma Bonus:</strong> 1st: {{ team.uma_first|stringformat:"+d" }} pts, 2nd: {{ team.uma_second|stringformat:"+d" }} pts, 3rd: {{ team.uma_third|stringformat:"+d" }} pts, 4th: {{ team.uma_fourth|stringformat:"+d" }} pts
             {% if team.chombo_enabled %} | <strong>Chombo Penalty:</strong> -30 pts each (stackable){% endif %}
@@ -44,8 +50,8 @@
         
         <div style="display: grid; gap: 2rem;">
             {% for session in sessions %}
-                <div style="border: 1px solid #ddd; border-radius: 4px; padding: 1.5rem; background-color: #f9f9f9;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="session-card">
+                    <div class="session-header">
                         <h3 style="margin: 0; color: #2c3e50; font-family: monospace;">
                             {{ session.session_id }}
                             {% if session.archived %}
@@ -54,7 +60,7 @@
                                 </span>
                             {% endif %}
                         </h3>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <div class="session-actions">
                             <span style="color: #666; font-size: 0.9rem;">{{ session.session_date|date:"M d, Y" }}</span>
                             {% if is_team_admin %}
                                 <a href="{% url 'scores:session_edit' team_slug=team.slug session_id=session.session_id %}" 
@@ -66,15 +72,16 @@
                         </div>
                     </div>
                     
+                    <div class="table-responsive">
                     <table style="width: 100%;">
                         <thead>
                             <tr style="background-color: #ecf0f1;">
                                 <th style="padding: 0.75rem; text-align: left;">Player</th>
-                                <th style="padding: 0.75rem; text-align: right;">Raw Score</th>
+                                <th class="hide-mobile" style="padding: 0.75rem; text-align: right;">Raw Score</th>
                                 <th style="padding: 0.75rem; text-align: center;">Placement</th>
-                                <th style="padding: 0.75rem; text-align: right;">Base</th>
-                                <th style="padding: 0.75rem; text-align: right;">Uma</th>
-                                <th style="padding: 0.75rem; text-align: center;">Chombo</th>
+                                <th class="hide-mobile" style="padding: 0.75rem; text-align: right;">Base</th>
+                                <th class="hide-mobile" style="padding: 0.75rem; text-align: right;">Uma</th>
+                                <th class="hide-tablet" style="padding: 0.75rem; text-align: center;">Chombo</th>
                                 <th style="padding: 0.75rem; text-align: right; font-weight: bold;">Calculated</th>
                             </tr>
                         </thead>
@@ -84,7 +91,7 @@
                                     <td style="padding: 0.75rem; text-align: left;">
                                         <strong>{{ score.member_name }}</strong>
                                     </td>
-                                    <td style="padding: 0.75rem; text-align: right;">{{ score.raw_score }}</td>
+                                    <td class="hide-mobile" style="padding: 0.75rem; text-align: right;">{{ score.raw_score }}</td>
                                     <td style="padding: 0.75rem; text-align: center;">
                                         <span style="
                                             display: inline-block;
@@ -105,11 +112,11 @@
                                             {% else %}4th{% endif %}
                                         </span>
                                     </td>
-                                    <td style="padding: 0.75rem; text-align: right;">{{ score.base_score|floatformat:1 }}</td>
-                                    <td style="padding: 0.75rem; text-align: right; {% if score.uma > 0 %}color: #27ae60;{% elif score.uma < 0 %}color: #e74c3c;{% endif %}">
+                                    <td class="hide-mobile" style="padding: 0.75rem; text-align: right;">{{ score.base_score|floatformat:1 }}</td>
+                                    <td class="hide-mobile" style="padding: 0.75rem; text-align: right; {% if score.uma > 0 %}color: #27ae60;{% elif score.uma < 0 %}color: #e74c3c;{% endif %}">
                                         {% if score.uma > 0 %}+{% endif %}{{ score.uma }}
                                     </td>
-                                    <td style="padding: 0.75rem; text-align: center;">
+                                    <td class="hide-tablet" style="padding: 0.75rem; text-align: center;">
                                         {% if score.chombo > 0 %}
                                             <span style="background-color: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9rem;">{{ score.chombo }}x -{{ score.chombo|mul:30 }}</span>
                                         {% else %}
@@ -123,6 +130,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
             {% endfor %}
         </div>
@@ -134,7 +142,7 @@
         
         <!-- Pagination Controls -->
         {% if sessions.has_other_pages %}
-            <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #ddd;">
+            <div class="pagination-controls">
                 {% if sessions.has_previous %}
                     <a href="?month={{ selected_month }}&year={{ selected_year }}&page=1" 
                        class="btn" 
