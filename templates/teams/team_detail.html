@@ -133,7 +133,7 @@
                                 data-chombo="{% if member.calculated_score %}{{ member.calculated_score.chombo_count }}{% else %}0{% endif %}">
                                 <td class="rank-cell"><strong>{{ forloop.counter }}</strong></td>
                                 <td>{{ member.name }}</td>
-                                <td class="hide-mobile" style="text-align: right;">
+                                <td style="text-align: right;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.total|floatformat:2 }}
                                     {% else %}
@@ -147,7 +147,7 @@
                                         0
                                     {% endif %}
                                 </td>
-                                <td style="text-align: right;">
+                                <td class="hide-mobile" style="text-align: right;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.average_per_game|floatformat:2 }}
                                     {% else %}
