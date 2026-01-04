@@ -309,8 +309,8 @@ class SessionsView(DetailView):
             
             sessions.append(session_data)
         
-        # Sort sessions by date (most recent first)
-        sessions.sort(key=lambda x: x['session_date'], reverse=True)
+        # Sort sessions by date (most recent first), then by session_id (descending)
+        sessions.sort(key=lambda x: (x['session_date'], x['session_id']), reverse=True)
         
         # Paginate sessions (10 per page)
         paginator = Paginator(sessions, 10)
