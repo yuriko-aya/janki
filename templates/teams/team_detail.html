@@ -3,24 +3,23 @@
 {% block title %}{{ team.name }} - Mahjong Score Tracker{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <div>
+<div class="team-header">
+    <div class="team-header-info">
         <h1>{{ team.name }}</h1>
         <p style="color: #666; margin-top: 0.5rem;">Created on {{ team.created_at|date:"M d, Y" }}</p>
     </div>
-    <div>
-        <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6;">← Back to Teams</a>
-        {% if is_team_admin %}
-            <a href="{% url 'teams:member_list' slug=team.slug %}" class="btn">Manage Members</a>
-            <a href="{% url 'teams:admin_list' slug=team.slug %}" class="btn" style="background-color: #8e44ad;">Manage Admins</a>
-            <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60; margin-left: 0.5rem;">Submit Session</a>
-            <a href="{% url 'teams:team_update' slug=team.slug %}" class="btn" style="background-color: #f39c12; margin-left: 0.5rem;">Edit Team</a>
-        {% endif %}
+    {% if is_team_admin %}
+    <div class="team-header-actions">
+        <a href="{% url 'teams:member_list' slug=team.slug %}" class="btn">Manage Members</a>
+        <a href="{% url 'teams:admin_list' slug=team.slug %}" class="btn" style="background-color: #8e44ad;">Manage Admins</a>
+        <a href="{% url 'scores:session_submit' team_slug=team.slug %}" class="btn" style="background-color: #27ae60;">Submit Session</a>
+        <a href="{% url 'teams:team_update' slug=team.slug %}" class="btn" style="background-color: #f39c12;">Edit Team</a>
     </div>
+    {% endif %}
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
-    <div>
+<div class="team-detail-grid">
+    <div class="team-sidebar">
         <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem;">
             <h3>Team Info</h3>
             <dl style="margin-top: 1rem;">
@@ -73,16 +72,17 @@
         </div>
     </div>
     
-    <div>
+    <div class="team-main-content">
         <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="standings-header">
                 <h3 style="margin: 0;">Members</h3>
-                <div style="display: flex; gap: 0.5rem;">
+                <div class="standings-actions">
                     <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.9rem;">View Standings</a>
                     <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">View Sessions</a>
                 </div>
             </div>
             {% if standings %}
+                <div class="table-responsive">
                 <table id="standingsTable" style="margin-top: 1rem;">
                     <thead>
                         <tr>
@@ -90,31 +90,31 @@
                             <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
                                 Name <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-mobile" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
                                 Total Score <span class="sort-indicator">▼</span>
                             </th>
-                            <th class="sortable" data-sort="games" style="text-align: right; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-mobile" data-sort="games" style="text-align: right; cursor: pointer; user-select: none;">
                                 Games <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
                                 Avg/Game <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-mobile" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
                                 Avg Place <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-tablet" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
                                 🥇 <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="second" style="text-align: center; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-tablet" data-sort="second" style="text-align: center; cursor: pointer; user-select: none;">
                                 🥈 <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="third" style="text-align: center; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-tablet" data-sort="third" style="text-align: center; cursor: pointer; user-select: none;">
                                 🥉 <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="fourth" style="text-align: center; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-tablet" data-sort="fourth" style="text-align: center; cursor: pointer; user-select: none;">
                                 4th <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
+                            <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
                                 Chombos <span class="sort-indicator"></span>
                             </th>
                         </tr>
@@ -133,14 +133,14 @@
                                 data-chombo="{% if member.calculated_score %}{{ member.calculated_score.chombo_count }}{% else %}0{% endif %}">
                                 <td class="rank-cell"><strong>{{ forloop.counter }}</strong></td>
                                 <td>{{ member.name }}</td>
-                                <td style="text-align: right;">
+                                <td class="hide-mobile" style="text-align: right;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.total|floatformat:2 }}
                                     {% else %}
                                         0
                                     {% endif %}
                                 </td>
-                                <td style="text-align: right;">
+                                <td class="hide-mobile" style="text-align: right;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.games_played }}
                                     {% else %}
@@ -154,42 +154,42 @@
                                         0.00
                                     {% endif %}
                                 </td>
-                                <td style="text-align: right;">
+                                <td class="hide-mobile" style="text-align: right;">
                                     {% if member.calculated_score and member.calculated_score.average_placement > 0 %}
                                         {{ member.calculated_score.average_placement|floatformat:2 }}
                                     {% else %}
                                         -
                                     {% endif %}
                                 </td>
-                                <td style="text-align: center;">
+                                <td class="hide-tablet" style="text-align: center;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.first_place_count }}
                                     {% else %}
                                         0
                                     {% endif %}
                                 </td>
-                                <td style="text-align: center;">
+                                <td class="hide-tablet" style="text-align: center;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.second_place_count }}
                                     {% else %}
                                         0
                                     {% endif %}
                                 </td>
-                                <td style="text-align: center;">
+                                <td class="hide-tablet" style="text-align: center;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.third_place_count }}
                                     {% else %}
                                         0
                                     {% endif %}
                                 </td>
-                                <td style="text-align: center;">
+                                <td class="hide-tablet" style="text-align: center;">
                                     {% if member.calculated_score %}
                                         {{ member.calculated_score.fourth_place_count }}
                                     {% else %}
                                         0
                                     {% endif %}
                                 </td>
-                                <td style="text-align: center;">
+                                <td class="hide-mobile" style="text-align: center;">
                                     {% if member.calculated_score and member.calculated_score.chombo_count > 0 %}
                                         <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">
                                             {{ member.calculated_score.chombo_count }}
@@ -202,6 +202,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             {% else %}
                 <p style="color: #999; text-align: center; padding: 2rem;">No members yet.</p>
             {% endif %}

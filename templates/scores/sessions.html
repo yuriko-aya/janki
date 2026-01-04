@@ -5,10 +5,9 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h1>{{ team.name }} - Session Details</h1>
+    <h1 class="team-title"><a href="{% url 'teams:team_detail' slug=team.slug %}">{{ team.name }}</a> - Session Details</h1>
     <div style="display: flex; gap: 1rem;">
         <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Standings</a>
-        <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6; color: white;">Team Home</a>
     </div>
 </div>
 
