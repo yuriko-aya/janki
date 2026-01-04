@@ -14,9 +14,10 @@
         <nav>
             <a href="{% url 'teams:team_list' %}"><h1>🀄 Mahjong Score Tracker</h1></a>
             <ul>
-                <li><a href="{% url 'teams:team_list' %}">Teams</a></li>
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'accounts:logout' %}">Logout ({{ user.username }})</a></li>
+                {% else %}
+                    <li><a href="{% url 'accounts:login' %}">Login</a></li>
                 {% endif %}
             </ul>
         </nav>

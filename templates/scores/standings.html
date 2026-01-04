@@ -5,14 +5,9 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h1>{{ team.name }} - Standings</h1>
+    <h1 class="team-title"><a href="{% url 'teams:team_detail' slug=team.slug %}">{{ team.name }}</a> - Standings</h1>
     <div style="display: flex; gap: 1rem;">
         <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white;">View Sessions</a>
-        <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Teams</a>
-        {% if not user.is_authenticated %}
-            <a href="{% url 'accounts:login' %}" class="btn" style="background-color: #007bff; color: white;">Login</a>
-            <a href="{% url 'accounts:register' %}" class="btn" style="background-color: #28a745; color: white;">Register</a>
-        {% endif %}
     </div>
 </div>
 
@@ -78,6 +73,7 @@
             </thead>
             <tbody id="standingsBody">
                 {% for member in standings %}
+                    {% if member.monthly_games > 0 %}
                     <tr data-name="{{ member.name }}" 
                         data-total="{{ member.monthly_total }}" 
                         data-games="{{ member.monthly_games }}" 
@@ -144,6 +140,7 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>

@@ -3,12 +3,12 @@
 {% block title %}Manage Admins - {{ team.name }} - Mahjong Score Tracker{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h1>Manage Team Admins - {{ team.name }}</h1>
+<div class="page-header">
+    <h1 class="team-title">Manage Team Admins - <a href="{% url 'teams:team_detail' slug=team.slug %}">{{ team.name }}</a></h1>
     <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6;">← Back to Team</a>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+<div class="admin-grid">
     <!-- Current Admins -->
     <div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h2 style="margin-top: 0;">Current Admins</h2>
@@ -16,23 +16,26 @@
         {% if team_admins %}
             <ul style="list-style: none; padding: 0;">
                 {% for admin in team_admins %}
-                    <li style="padding: 1rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>{{ admin.user.get_full_name|default:admin.user.username }}</strong>
-                            <span style="color: #666; font-size: 0.9rem; margin-left: 0.5rem;">(@{{ admin.user.username }})</span>
-                            <br>
-                            <small style="color: #999;">Added on {{ admin.created_at|date:"M d, Y" }}</small>
+                    <li class="admin-list-item">
+                        <div class="admin-info">
+                            <div>
+                                <strong>{{ admin.user.get_full_name|default:admin.user.username }}</strong>
+                                <span style="color: #666; font-size: 0.9rem; margin-left: 0.5rem;">(@{{ admin.user.username }})</span>
+                            </div>
+                            <small style="color: #999; display: block; margin-top: 0.25rem;">Added on {{ admin.created_at|date:"M d, Y" }}</small>
                         </div>
-                        {% if team_admins|length > 1 %}
-                            <a href="{% url 'teams:admin_remove' pk=admin.pk %}" 
-                               class="btn" 
-                               style="background-color: #e74c3c; color: white; padding: 0.5rem 1rem;"
-                               onclick="return confirm('Are you sure you want to remove this admin?');">
-                                Remove
-                            </a>
-                        {% else %}
-                            <span style="color: #999; font-size: 0.85rem; font-style: italic;">Last admin</span>
-                        {% endif %}
+                        <div class="admin-actions">
+                            {% if team_admins|length > 1 %}
+                                <a href="{% url 'teams:admin_remove' pk=admin.pk %}" 
+                                   class="btn" 
+                                   style="background-color: #e74c3c; color: white; padding: 0.5rem 1rem;"
+                                   onclick="return confirm('Are you sure you want to remove this admin?');">
+                                    Remove
+                                </a>
+                            {% else %}
+                                <span style="color: #999; font-size: 0.85rem; font-style: italic;">Last admin</span>
+                            {% endif %}
+                        </div>
                     </li>
                 {% endfor %}
             </ul>
