@@ -15,6 +15,7 @@ Scoring Formula:
   Chombo penalty: -30 (if player went bankrupt)
 """
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from scores.models import RawScore, CalculatedScore
 
 
@@ -216,8 +217,13 @@ def get_team_standings(team):
     Returns:
         QuerySet of Members with calculated scores, sorted by total descending
     """
-    members = team.members.select_related('calculated_score').order_by('-calculated_score__total')
-    return (m for m in members if m.calculated_score and m.calculated_score.games_played > 0)
+    members = (
+        team.members
+        .select_related('calculated_score')
+        .filter(calculated_score__games_played__gt=0)
+        .order_by('-calculated_score__total')
+    )
+    return members
 
 def get_inactive_members(team):
     """
@@ -229,9 +235,15 @@ def get_inactive_members(team):
     Returns:
         QuerySet of Members with calculated scores, sorted by total descending
     """
-    members = team.members.select_related('calculated_score').order_by('-calculated_score__total')
-    return (m for m in members if m.calculated_score and m.calculated_score.games_played == 0)
-
+    members = (
+        team.members
+        .select_related('calculated_score')
+        .filter(
+            Q(calculated_score__games_played=0) |
+            Q(calculated_score__isnull=True)
+        )
+    )
+    return members
 
 def get_team_standings_by_month(team, month, year):
     """
