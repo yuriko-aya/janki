@@ -91,6 +91,12 @@ class CalculatedScore(models.Model):
            where target_point is team.target_point (default 30000)
         4. Sum calculated scores across all complete sessions
         """
+        from scores.services.calculator import (
+            calculate_placement_with_ties,
+            calculate_uma_for_placement,
+            calculate_session_score
+        )
+        
         total_score = 0.0
         sessions_participated = set()
         placements = []
@@ -119,23 +125,10 @@ class CalculatedScore(models.Model):
             member_raw_score = session_all_scores.get(member=self.member)
             
             # Sort all scores to determine placement (highest score = 1st place)
-            # Convert QuerySet to list first to avoid multiple evaluations
             sorted_scores = sorted(list(session_all_scores), key=lambda x: x.score, reverse=True)
             
-            # Handle ties: find all players with the same score
-            member_score_value = member_raw_score.score
-            tied_players = [s for s in sorted_scores if s.score == member_score_value]
-            
-            # Calculate placement for ties
-            if len(tied_players) > 1:
-                # Multiple players tied - calculate shared placement
-                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
-                # Shared placement is average of positions (e.g., tied for 1st-2nd = 1.5)
-                placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)) / len(tied_players)
-            else:
-                # No tie - normal placement
-                placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member == self.member)
-            
+            # Use helper function to calculate placement with tie handling
+            placement = calculate_placement_with_ties(member_raw_score.score, sorted_scores)
             placements.append(placement)
             
             # Count discrete placements for statistics (round to nearest integer)
@@ -143,30 +136,20 @@ class CalculatedScore(models.Model):
             if 1 <= placement_rounded <= 4:
                 placement_counts[placement_rounded] += 1
             
-            # Get Uma bonus based on placement (using team's uma settings)
-            team = self.member.team
-            uma_map = {
-                1: team.uma_first,
-                2: team.uma_second,
-                3: team.uma_third,
-                4: team.uma_fourth
-            }
+            # Use helper function to get Uma bonus
+            uma = calculate_uma_for_placement(placement, self.member.team)
             
-            # For ties, calculate shared Uma by averaging the tied positions' Uma values
-            if len(tied_players) > 1:
-                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
-                tied_positions = range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)
-                uma = sum(uma_map.get(pos, 0) for pos in tied_positions) / len(tied_players)
-            else:
-                uma = uma_map.get(int(placement), 0)
+            # Use helper function to calculate final score with chombo
+            calculated = calculate_session_score(
+                member_raw_score.score,
+                placement,
+                uma,
+                self.member.team,
+                member_raw_score.chombo
+            )
             
-            # Calculate score: (score - target_point) / 1000 + uma
-            target = self.member.team.target_point
-            calculated = (member_raw_score.score - target) / 1000.0 + uma
-            
-            # Apply chombo penalty if applicable and enabled for this team
-            if member_raw_score.chombo > 0 and team.chombo_enabled:
-                calculated -= (30 * member_raw_score.chombo)
+            # Track chombo count
+            if member_raw_score.chombo > 0:
                 chombo_total += member_raw_score.chombo
             
             total_score += calculated

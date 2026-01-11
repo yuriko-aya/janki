@@ -14,6 +14,7 @@ from django.http import HttpResponseBadRequest
 
 from accounts.forms import UserRegistrationForm, LoginForm, ResendVerificationEmailForm
 from accounts.models import EmailVerificationToken
+from accounts.services import send_verification_email
 
 
 class RegisterView(FormView):
@@ -39,32 +40,10 @@ class RegisterView(FormView):
         # Create verification token
         token = EmailVerificationToken.create_for_user(user)
         
-        # Send verification email
-        self.send_verification_email(user, token)
+        # Send verification email using service
+        send_verification_email(self.request, user, token)
         
         return super().form_valid(form)
-    
-    def send_verification_email(self, user, token):
-        """Send email verification link to user."""
-        verification_url = self.request.build_absolute_uri(
-            reverse_lazy('accounts:verify_email', kwargs={'token': token.token})
-        )
-        
-        subject = 'Verify Your Email - Mahjong Score Tracker'
-        html_message = render_to_string('accounts/email_verification.html', {
-            'user': user,
-            'verification_url': verification_url,
-            'timeout_days': settings.ACCOUNT_ACTIVATION_TIMEOUT_DAYS,
-        })
-        
-        send_mail(
-            subject,
-            f'Please verify your email by visiting: {verification_url}',
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
 
 
 class VerifyEmailView(View):
@@ -111,36 +90,14 @@ class RegistrationPendingView(FormView):
             # Create new verification token
             token = EmailVerificationToken.create_for_user(user)
             
-            # Send verification email
-            self.send_verification_email(user, token)
+            # Send verification email using service
+            send_verification_email(self.request, user, token)
             
             messages.success(self.request, f'Verification email resent to {email}. Please check your email.')
         except User.DoesNotExist:
             messages.error(self.request, 'User not found with this email.')
         
         return super().form_valid(form)
-    
-    def send_verification_email(self, user, token):
-        """Send email verification link to user."""
-        verification_url = self.request.build_absolute_uri(
-            reverse_lazy('accounts:verify_email', kwargs={'token': token.token})
-        )
-        
-        subject = 'Verify Your Email - Mahjong Score Tracker'
-        html_message = render_to_string('accounts/email_verification.html', {
-            'user': user,
-            'verification_url': verification_url,
-            'timeout_days': settings.ACCOUNT_ACTIVATION_TIMEOUT_DAYS,
-        })
-        
-        send_mail(
-            subject,
-            f'Please verify your email by visiting: {verification_url}',
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            html_message=html_message,
-            fail_silently=False,
-        )
 
 
 class LoginView(FormView):
