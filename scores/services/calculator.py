@@ -391,6 +391,156 @@ def get_team_standings_by_month(team, month, year):
     return sorted((m for m in members if m.monthly_games > 0), key=lambda m: m.monthly_total, reverse=True)
 
 
+def get_team_standings_by_year(team, year):
+    """
+    Get team members' standings filtered by year.
+    Calculates scores based only on sessions created in the specified year.
+    
+    Args:
+        team: The Team object
+        year: Year number (YYYY)
+        
+    Returns:
+        List of Members with filtered calculated_score, sorted by total descending
+    """
+    from datetime import datetime
+    from django.db.models import Q, F, Sum, Case, When, FloatField, IntegerField
+    from django.db.models.functions import ExtractMonth, ExtractYear
+    from teams.models import Member
+    
+    # Get all raw scores for this team in the specified year (include archived for yearly view)
+    yearly_raw_scores = RawScore.objects.filter(
+        member__team=team,
+        session_date__year=year
+    )
+    
+    # If no scores in this year, return all members with 0 scores
+    if not yearly_raw_scores.exists():
+        members = team.members.all()
+        for member in members:
+            # Create a temporary object with zero stats
+            member.yearly_total = 0.0
+            member.yearly_games = 0
+            member.yearly_average = 0.0
+            member.yearly_avg_placement = 0.0
+            member.yearly_chombo_count = 0
+            member.yearly_first_place = 0
+            member.yearly_second_place = 0
+            member.yearly_third_place = 0
+            member.yearly_fourth_place = 0
+        return sorted(members, key=lambda m: m.yearly_total, reverse=True)
+    
+    # Group scores by session to identify complete sessions
+    sessions = {}
+    for raw_score in yearly_raw_scores:
+        if raw_score.session_id not in sessions:
+            sessions[raw_score.session_id] = []
+        sessions[raw_score.session_id].append(raw_score)
+    
+    # Calculate scores per member based on complete sessions only
+    member_scores = {}
+    for session_id, session_scores in sessions.items():
+        if len(session_scores) != 4:
+            # Skip incomplete sessions
+            continue
+        
+        for raw_score in session_scores:
+            if raw_score.member_id not in member_scores:
+                member_scores[raw_score.member_id] = {
+                    'total': 0.0,
+                    'games': 0,
+                    'placements': [],
+                    'chombo_count': 0,
+                    'first_place': 0,
+                    'second_place': 0,
+                    'third_place': 0,
+                    'fourth_place': 0
+                }
+            
+            # Sort all scores in session to determine placement (already a list)
+            sorted_scores = sorted(session_scores, key=lambda x: x.score, reverse=True)
+            
+            # Handle ties: find all players with the same score
+            member_score_value = raw_score.score
+            tied_players = [s for s in sorted_scores if s.score == member_score_value]
+            
+            # Calculate placement for ties
+            if len(tied_players) > 1:
+                # Multiple players tied - calculate shared placement
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
+                # Shared placement is average of positions (e.g., tied for 1st-2nd = 1.5)
+                placement = sum(range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)) / len(tied_players)
+            else:
+                # No tie - normal placement
+                placement = next(i + 1 for i, s in enumerate(sorted_scores) if s.member_id == raw_score.member_id)
+            
+            # Calculate score: (score - target_point) / 1000 + uma (using team's uma settings)
+            uma_map = {
+                1: team.uma_first,
+                2: team.uma_second,
+                3: team.uma_third,
+                4: team.uma_fourth
+            }
+            
+            # For ties, calculate shared Uma by averaging the tied positions' Uma values
+            if len(tied_players) > 1:
+                first_tied_idx = next(i for i, s in enumerate(sorted_scores) if s.score == member_score_value)
+                tied_positions = range(first_tied_idx + 1, first_tied_idx + len(tied_players) + 1)
+                uma = sum(uma_map.get(pos, 0) for pos in tied_positions) / len(tied_players)
+            else:
+                uma = uma_map.get(int(placement), 0)
+            
+            calculated = (raw_score.score - team.target_point) / 1000.0 + uma
+            
+            # Apply chombo penalty if enabled for this team
+            if raw_score.chombo > 0 and team.chombo_enabled:
+                calculated -= (30 * raw_score.chombo)
+                member_scores[raw_score.member_id]['chombo_count'] += raw_score.chombo
+            
+            member_scores[raw_score.member_id]['total'] += calculated
+            member_scores[raw_score.member_id]['games'] += 1
+            member_scores[raw_score.member_id]['placements'].append(placement)
+            
+            # Count placements (round fractional placements to nearest integer for statistics)
+            placement_rounded = round(placement)
+            if placement_rounded == 1:
+                member_scores[raw_score.member_id]['first_place'] += 1
+            elif placement_rounded == 2:
+                member_scores[raw_score.member_id]['second_place'] += 1
+            elif placement_rounded == 3:
+                member_scores[raw_score.member_id]['third_place'] += 1
+            elif placement_rounded == 4:
+                member_scores[raw_score.member_id]['fourth_place'] += 1
+    
+    # Attach calculated scores to members
+    members = team.members.all()
+    for member in members:
+        if member.id in member_scores:
+            member.yearly_total = member_scores[member.id]['total']
+            member.yearly_games = member_scores[member.id]['games']
+            member.yearly_average = member.yearly_total / member.yearly_games if member.yearly_games > 0 else 0.0
+            placements = member_scores[member.id]['placements']
+            member.yearly_avg_placement = sum(placements) / len(placements) if placements else 0.0
+            member.yearly_chombo_count = member_scores[member.id]['chombo_count']
+            member.yearly_first_place = member_scores[member.id]['first_place']
+            member.yearly_second_place = member_scores[member.id]['second_place']
+            member.yearly_third_place = member_scores[member.id]['third_place']
+            member.yearly_fourth_place = member_scores[member.id]['fourth_place']
+        else:
+            member.yearly_total = 0.0
+            member.yearly_games = 0
+            member.yearly_average = 0.0
+            member.yearly_avg_placement = 0.0
+            member.yearly_chombo_count = 0
+            member.yearly_first_place = 0
+            member.yearly_second_place = 0
+            member.yearly_third_place = 0
+            member.yearly_fourth_place = 0
+    
+    # Sort by yearly total
+    return sorted((m for m in members if m.yearly_games > 0), key=lambda m: m.yearly_total, reverse=True)
+
+
 def submit_session_scores(session_id, team, score_data, session_date=None):
     """
     Submit all scores for a session at once.

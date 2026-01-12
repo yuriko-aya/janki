@@ -6,6 +6,7 @@ app_name = 'scores'
 urlpatterns = [
     # Public views
     path('<slug:slug>/standings/', views.StandingsView.as_view(), name='standings'),
+    path('<slug:slug>/standings/export/', views.StandingsExportView.as_view(), name='standings_export'),
     path('<slug:slug>/sessions/', views.SessionsView.as_view(), name='sessions'),
     
     # Admin views

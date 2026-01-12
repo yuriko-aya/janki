@@ -17,6 +17,7 @@ from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 from accounts.models import TeamAdmin
 from scores.services.calculator import get_team_standings, get_inactive_members
+from scores.export_utils import export_standings_to_csv, export_standings_to_pdf
 
 
 class TeamListView(ListView):
@@ -321,3 +322,42 @@ class AuthorizationView(LoginRequiredMixin, View):
                 'error_type': 'error',
                 'message': f'An error occurred: {str(e)}'
             }, status=500)
+
+
+class TeamExportView(TeamSlugMixin, TeamContextMixin, DetailView):
+    """Export team standings (yearly) to CSV or PDF (public view).
+    
+    Query parameters:
+    - format: 'csv' or 'pdf' (required)
+    - year: year number (optional, defaults to current year)
+    """
+    model = Team
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    
+    def get(self, request, *args, **kwargs):
+        from datetime import date
+        from scores.services.calculator import get_team_standings_by_year
+        
+        self.object = self.get_object()
+        
+        export_format = request.GET.get('format', 'csv').lower()
+        year = request.GET.get('year')
+        
+        # Get current year as default
+        today = date.today()
+        if year:
+            year = int(year)
+        else:
+            year = today.year
+        
+        # Get standings for the entire year
+        standings = get_team_standings_by_year(self.team, year)
+        
+        # Filter only members with games played
+        standings = [m for m in standings if hasattr(m, 'yearly_games') and m.yearly_games > 0]
+        
+        if export_format == 'pdf':
+            return export_standings_to_pdf(self.team, standings, year=year, is_yearly=True)
+        else:
+            return export_standings_to_csv(self.team, standings, year=year, is_yearly=True)
