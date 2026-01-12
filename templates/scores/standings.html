@@ -10,6 +10,13 @@
     </div>
     <div class="team-header-actions">
         <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white;">View Sessions</a>
+        <div class="dropdown" style="display: inline-block; position: relative;">
+            <button class="btn" style="background-color: #27ae60; color: white;">Export ▼</button>
+            <div class="dropdown-content" style="display: none; position: absolute; background-color: white; min-width: 160px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; right: 0; border-radius: 4px; margin-top: 5px;">
+                <a href="{% url 'scores:standings_export' slug=team.slug %}?format=csv&month={{ selected_month }}&year={{ selected_year }}" style="color: black; padding: 12px 16px; text-decoration: none; display: block;">📄 Export CSV</a>
+                <a href="{% url 'scores:standings_export' slug=team.slug %}?format=pdf&month={{ selected_month }}&year={{ selected_year }}" style="color: black; padding: 12px 16px; text-decoration: none; display: block;">📑 Export PDF</a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -258,6 +265,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
             } else {
                 indicator.textContent = '';
+            }
+        });
+    }
+    
+    // Dropdown functionality for export
+    const dropdown = document.querySelector('.dropdown');
+    const dropdownBtn = dropdown ? dropdown.querySelector('.btn') : null;
+    const dropdownContent = dropdown ? dropdown.querySelector('.dropdown-content') : null;
+    
+    if (dropdownBtn && dropdownContent) {
+        dropdownBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (dropdown && !dropdown.contains(e.target)) {
+                dropdownContent.style.display = 'none';
             }
         });
     }

@@ -16,6 +16,7 @@ from scores.services.calculator import (
     get_team_standings_by_month,
     recalculate_team_scores
 )
+from scores.export_utils import export_standings_to_csv, export_standings_to_pdf
 from teams.models import Team
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 
@@ -340,3 +341,50 @@ class ArchiveManagementView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
             messages.error(request, "Invalid year")
         
         return redirect('scores:archive_management', team_slug=self.team.slug)
+
+
+class StandingsExportView(TeamSlugMixin, TeamContextMixin, DetailView):
+    """Export team standings to CSV or PDF (public view).
+    
+    Query parameters:
+    - format: 'csv' or 'pdf' (required)
+    - month: month number (1-12) (optional)
+    - year: year number (optional)
+    """
+    model = Team
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+    
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        export_format = request.GET.get('format', 'csv').lower()
+        month = request.GET.get('month')
+        year = request.GET.get('year')
+        
+        # Get current date for defaults
+        today = date.today()
+        
+        # Parse month and year
+        if month:
+            month = int(month)
+            if month < 1 or month > 12:
+                month = today.month
+        else:
+            month = today.month
+        
+        if year:
+            year = int(year)
+        else:
+            year = today.year
+        
+        # Get standings for the specified month/year
+        standings = get_team_standings_by_month(self.team, month, year)
+        
+        # Filter only members with games played
+        standings = [m for m in standings if hasattr(m, 'monthly_games') and m.monthly_games > 0]
+        
+        if export_format == 'pdf':
+            return export_standings_to_pdf(self.team, standings, month=month, year=year)
+        else:
+            return export_standings_to_csv(self.team, standings, month=month, year=year)
