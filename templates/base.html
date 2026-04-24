@@ -14,6 +14,7 @@
         <nav>
             <a href="{% url 'teams:team_list' %}"><h1>🀄 Mahjong Score Tracker</h1></a>
             <ul>
+                <li><a href="/bot-info">Discord Bot</a></li>
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'accounts:logout' %}">Logout ({{ user.username }})</a></li>
                 {% else %}
@@ -36,7 +37,7 @@
     </main>
 
     <footer style="text-align: center; padding: 2rem 0; color: #666; border-top: 1px solid #ecf0f1; margin-top: 4rem;">
-        <p>&copy; 2025 Mahjong Score Tracker. All rights reserved.</p>
+        <p>&copy; {% now "Y" %} Mahjong Score Tracker. All rights reserved.</p>
     </footer>
     
     {% load static %}
