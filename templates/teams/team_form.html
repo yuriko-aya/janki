@@ -160,7 +160,11 @@
         
         <div style="margin-top: 2rem; display: flex; gap: 1rem;">
             <button type="submit" class="btn">{% if form.instance.pk %}Update Team{% else %}Create Team{% endif %}</button>
-            <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+            {% if form.instance.pk %}
+                <a href="{% url 'teams:team_detail' slug=form.instance.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+            {% else %}
+                <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+            {% endif %}
         </div>
     </form>
 </div>
