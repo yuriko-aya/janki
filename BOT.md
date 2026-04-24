@@ -2,7 +2,9 @@
 
 ## Regiter Bot to Server
 
-Visit ([Discord Bot Registration](https://janki.yuriko-aya.cc/discord-bot))
+- Register janki account [https://janki.yuriko-aya.cc/accounts/register/](https://janki.yuriko-aya.cc/accounts/register/)
+- Create Team [https://janki.yuriko-aya.cc/teams/create/](https://janki.yuriko-aya.cc/teams/create/)
+- Add discord bot to channel [https://janki.yuriko-aya.cc/discord-bot](https://janki.yuriko-aya.cc/discord-bot)
 
 ## Commands
 
