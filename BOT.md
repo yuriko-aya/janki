@@ -63,8 +63,10 @@ A message must contain at least 4 valid player lines to be submitted. Sessions a
 
 ### Return message
 
+```
 ✅ Session 2026-04-18 12:19: Rin (18900), Amy (38300), Shien (23000), Rudy (39800) has been recorded successfully.
 ❌ Score recording failed (status 400): {"success":false,"errors":{"scores":[{},{},{},{"member_name":["Member 'Farras' does not exist in team Semarang Riichi Guild"]}]}}
 ✅ Session 2026-04-18 11:11: Amy (19900), Rudy (27700), Shien (35700), Sun (36700) has been recorded successfully.
 ❌ Score recording failed (status 409): {"error":"Session 2026-04-11 11:50 already exists. Use PUT to update.","existing_scores":4}
 ✅ All new scores have been recorded. You can see the updated leaderboard here: https://janki.yuriko-aya.cc/scores/semarang-riichi-guild/standings/
+```
