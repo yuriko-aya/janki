@@ -72,3 +72,5 @@ A message must contain at least 4 valid player lines to be submitted. Sessions a
 ❌ Score recording failed (status 409): {"error":"Session 2026-04-11 11:50 already exists. Use PUT to update.","existing_scores":4}
 ✅ All new scores have been recorded. You can see the updated leaderboard here: https://janki.yuriko-aya.cc/scores/semarang-riichi-guild/standings/
 ```
+
+![Screenshot](https://imagine.yuriko-aya.cc/img/066e401adab7144668c1ec9f59ea61af.png)
