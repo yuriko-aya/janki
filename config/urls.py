@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from django.views.static import serve
 from django.views.generic import RedirectView
 from accounts.admin_views import AdminLoginView
+from config.views import BotInfoView
 
 # Customize admin login
 admin.site.login = AdminLoginView.as_view()
@@ -37,6 +38,7 @@ urlpatterns = [
     path('teams/', include('teams.urls')),
     path('scores/', include('scores.urls')),
     path('accounts/', include('accounts.urls')),
+    path('bot-info/', BotInfoView.as_view(), name='bot_info'),
     
     # API endpoints
     path('api/', include('scores.api_urls')),

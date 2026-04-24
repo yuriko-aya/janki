@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Bot Info — Mahjong Score Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+  .bot-info-content { max-width: 860px; margin: 0 auto; }
+  .bot-info-content h1 { font-size: 2rem; margin-bottom: 1rem; }
+  .bot-info-content h2 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: 0.5rem; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.25rem; }
+  .bot-info-content h3 { font-size: 1.1rem; margin-top: 1.5rem; }
+  .bot-info-content table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  .bot-info-content th, .bot-info-content td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
+  .bot-info-content th { background: #f5f5f5; font-weight: 600; }
+  .bot-info-content code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.9em; }
+  .bot-info-content pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+  .bot-info-content pre code { background: none; padding: 0; }
+  .bot-info-content ol, .bot-info-content ul { padding-left: 1.5rem; }
+  .bot-info-content li { margin-bottom: 0.25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bot-info-content">
+  {{ bot_info_html|safe }}
+</div>
+{% endblock %}
