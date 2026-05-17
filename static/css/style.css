@@ -375,6 +375,20 @@ footer {
     .hide-mobile {
         display: none !important;
     }
+
+    table th,
+    table td {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.78rem;
+    }
+}
+
+@media (max-width: 480px) {
+    table th,
+    table td {
+        padding: 0.4rem 0.3rem;
+        font-size: 0.72rem;
+    }
 }
 
 @media (max-width: 992px) {
