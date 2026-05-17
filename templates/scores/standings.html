@@ -83,6 +83,9 @@
                     <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; width: 100px; cursor: pointer; user-select: none;">
                         Chombo Count <span class="sort-indicator"></span>
                     </th>
+                    <th class="sortable hide-tablet" data-sort="bestfive" style="text-align: right; width: 130px; cursor: pointer; user-select: none;">
+                        Best 5 Consec. <span class="sort-indicator"></span>
+                    </th>
                 </tr>
             </thead>
             <tbody id="standingsBody">
@@ -97,7 +100,8 @@
                         data-second="{{ member.monthly_second_place }}"
                         data-third="{{ member.monthly_third_place }}"
                         data-fourth="{{ member.monthly_fourth_place }}"
-                        data-chombo="{{ member.monthly_chombo_count }}">
+                        data-chombo="{{ member.monthly_chombo_count }}"
+                        data-bestfive="{% if member.monthly_best_five is not None %}{{ member.monthly_best_five }}{% else %}-9999{% endif %}">
                         <td class="rank-cell" style="text-align: center;">
                             <span style="
                                 display: inline-block;
@@ -151,6 +155,13 @@
                                 </span>
                             {% else %}
                                 <span style="color: #95a5a6;">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="hide-tablet" style="text-align: right; font-weight: bold;">
+                            {% if member.monthly_best_five is not None %}
+                                {{ member.monthly_best_five|floatformat:1 }}
+                            {% else %}
+                                <span style="color: #95a5a6;">-</span>
                             {% endif %}
                         </td>
                     </tr>

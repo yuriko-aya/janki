@@ -245,6 +245,22 @@ def get_inactive_members(team):
     )
     return members
 
+def best_five_consecutive(game_scores):
+    """
+    Return the highest sum of 5 consecutive scores from an ordered list.
+    Returns None if fewer than 5 scores are provided.
+    
+    Args:
+        game_scores: List of floats in chronological order
+        
+    Returns:
+        Float (max window sum) or None if len < 5
+    """
+    if len(game_scores) < 5:
+        return None
+    return max(sum(game_scores[i:i + 5]) for i in range(len(game_scores) - 4))
+
+
 def get_team_standings_by_month(team, month, year):
     """
     Get team members' standings filtered by month/year.
@@ -304,7 +320,8 @@ def get_team_standings_by_month(team, month, year):
                     'first_place': 0,
                     'second_place': 0,
                     'third_place': 0,
-                    'fourth_place': 0
+                    'fourth_place': 0,
+                    'game_records': []  # list of (session_date, session_id, calculated_score)
                 }
             
             # Sort all scores in session to determine placement (already a list)
@@ -351,6 +368,10 @@ def get_team_standings_by_month(team, month, year):
             member_scores[raw_score.member_id]['games'] += 1
             member_scores[raw_score.member_id]['placements'].append(placement)
             
+            # Track per-game score for best-5-consecutive calculation
+            sort_date = raw_score.session_date or raw_score.created_at.date()
+            member_scores[raw_score.member_id]['game_records'].append((sort_date, session_id, calculated))
+            
             # Count placements (round fractional placements to nearest integer for statistics)
             placement_rounded = round(placement)
             if placement_rounded == 1:
@@ -376,6 +397,9 @@ def get_team_standings_by_month(team, month, year):
             member.monthly_second_place = member_scores[member.id]['second_place']
             member.monthly_third_place = member_scores[member.id]['third_place']
             member.monthly_fourth_place = member_scores[member.id]['fourth_place']
+            game_records = sorted(member_scores[member.id]['game_records'])
+            ordered_scores = [r[2] for r in game_records]
+            member.monthly_best_five = best_five_consecutive(ordered_scores)
         else:
             member.monthly_total = 0.0
             member.monthly_games = 0
@@ -386,6 +410,7 @@ def get_team_standings_by_month(team, month, year):
             member.monthly_second_place = 0
             member.monthly_third_place = 0
             member.monthly_fourth_place = 0
+            member.monthly_best_five = None
     
     # Sort by monthly total
     return sorted((m for m in members if m.monthly_games > 0), key=lambda m: m.monthly_total, reverse=True)
