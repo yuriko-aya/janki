@@ -16,7 +16,8 @@ from teams.models import Team, Member
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 from accounts.models import TeamAdmin
-from scores.services.calculator import get_team_standings, get_inactive_members
+from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year
+from datetime import date
 from scores.export_utils import export_standings_to_csv, export_standings_to_pdf
 
 
@@ -28,15 +29,19 @@ class TeamListView(ListView):
     paginate_by = 20
     
     def get_queryset(self):
+        # Staff users see all teams including hidden ones
+        if self.request.user.is_authenticated and self.request.user.is_staff:
+            return Team.objects.all().order_by('-created_at')
+
         # Show all public teams, plus hidden teams where user is admin
         queryset = Team.objects.filter(hidden=False)
-        
+
         if self.request.user.is_authenticated:
             # Include hidden teams where user is admin
             admin_team_ids = TeamAdmin.objects.filter(user=self.request.user).values_list('team_id', flat=True)
             hidden_admin_teams = Team.objects.filter(id__in=admin_team_ids, hidden=True)
             queryset = queryset | hidden_admin_teams
-        
+
         return queryset.distinct().order_by('-created_at')
     
     def get_context_data(self, **kwargs):
@@ -60,9 +65,11 @@ class TeamDetailView(TeamSlugMixin, TeamContextMixin, DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get standings sorted by calculated score
-        context['standings'] = get_team_standings(self.team)
+        today = date.today()
+        context['standings'] = get_team_standings_by_year(self.team, today.year)
+        context['monthly_standings'] = get_team_standings_by_month(self.team, today.month, today.year)
         context['inactive_members'] = get_inactive_members(self.team)
+        context['current_month'] = today.strftime('%B %Y')
         return context
 
 

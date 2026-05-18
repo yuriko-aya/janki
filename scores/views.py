@@ -44,9 +44,10 @@ class SessionSubmitView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
         return kwargs
     
     def form_valid(self, form):
-        session_id = form.cleaned_data['session_id']
-        session_date = form.cleaned_data.get('session_date')
-        
+        now = datetime.now()
+        session_id = now.strftime("%Y-%m-%d %H:%M")
+        session_date = now.date()
+
         # Prepare score data
         score_data = []
         for i in range(4):

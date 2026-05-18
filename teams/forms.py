@@ -71,6 +71,12 @@ class MemberForm(forms.ModelForm):
             }),
         }
 
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '')
+        if ' ' in name:
+            raise forms.ValidationError("Member name cannot contain spaces.")
+        return name
+
 
 class AddTeamAdminForm(forms.Form):
     """Form for adding a new admin to a team."""

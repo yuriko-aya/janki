@@ -28,22 +28,6 @@ class RawScoreForm(forms.ModelForm):
 
 class SessionScoresForm(forms.Form):
     """Form for submitting all 4 scores for a session at once."""
-    session_id = forms.CharField(
-        max_length=100,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Session ID'
-        })
-    )
-    session_date = forms.DateField(
-        required=True,
-        widget=forms.DateInput(attrs={
-            'class': 'form-control',
-            'type': 'date',
-        }),
-        label='Session Date',
-        help_text='Date of the game session'
-    )
     
     def __init__(self, team, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,14 +62,19 @@ class SessionScoresForm(forms.Form):
 
 class SessionEditForm(SessionScoresForm):
     """Form for editing existing session scores."""
-    
+    session_date = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date',
+        }),
+        label='Session Date',
+        help_text='Date of the game session'
+    )
+
     def __init__(self, team, session_id, *args, **kwargs):
         super().__init__(team, *args, **kwargs)
         self.session_id = session_id
-        
-        # Make session_id read-only since we're editing
-        self.fields['session_id'].widget.attrs['readonly'] = True
-        self.fields['session_id'].initial = session_id
 
 
 class ArchiveYearForm(forms.Form):
