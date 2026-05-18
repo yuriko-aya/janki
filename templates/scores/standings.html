@@ -56,17 +56,20 @@
                     <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
                         Player Name <span class="sort-indicator"></span>
                     </th>
-                    <th class="sortable" data-sort="total" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
-                        Total Score <span class="sort-indicator">▼</span>
-                    </th>
                     <th class="sortable" data-sort="games" style="text-align: right; width: 100px; cursor: pointer; user-select: none;">
                         Games Played <span class="sort-indicator"></span>
                     </th>
+                    <th class="sortable" data-sort="total" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
+                        Total Points <span class="sort-indicator">▼</span>
+                    </th>
+                    <th class="sortable" data-sort="bestfive" style="text-align: right; width: 130px; cursor: pointer; user-select: none;">
+                        Best 5 Consecutive <span class="sort-indicator"></span>
+                    </th>
                     <th class="sortable hide-mobile" data-sort="average" style="text-align: right; width: 140px; cursor: pointer; user-select: none;">
-                        Average/Game <span class="sort-indicator"></span>
+                        Average Points <span class="sort-indicator"></span>
                     </th>
                     <th class="sortable hide-mobile" data-sort="placement" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
-                        Avg Placement <span class="sort-indicator"></span>
+                        Average Position <span class="sort-indicator"></span>
                     </th>
                     <th class="sortable hide-tablet" data-sort="first" style="text-align: center; width: 60px; cursor: pointer; user-select: none;">
                         1st<span class="sort-indicator"></span>
@@ -83,15 +86,12 @@
                     <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; width: 100px; cursor: pointer; user-select: none;">
                         Chombo Count <span class="sort-indicator"></span>
                     </th>
-                    <th class="sortable" data-sort="bestfive" style="text-align: right; width: 130px; cursor: pointer; user-select: none;">
-                        Best 5 Consec. <span class="sort-indicator"></span>
-                    </th>
                 </tr>
             </thead>
             <tbody id="standingsBody">
                 {% for member in standings %}
                     {% if member.monthly_games > 0 %}
-                    <tr data-name="{{ member.name }}" 
+                    <tr data-name="{{ member.shown_name }}" 
                         data-total="{{ member.monthly_total }}" 
                         data-games="{{ member.monthly_games }}" 
                         data-average="{{ member.monthly_average }}" 
@@ -118,13 +118,20 @@
                             </span>
                         </td>
                         <td>
-                            {{ member.name }}
+                            {{ member.shown_name }}
+                        </td>
+                        <td style="text-align: right;">
+                            {{ member.monthly_games }}
                         </td>
                         <td style="text-align: right;">
                             {{ member.monthly_total|floatformat:1 }}
                         </td>
                         <td style="text-align: right;">
-                            {{ member.monthly_games }}
+                            {% if member.monthly_best_five is not None %}
+                                {{ member.monthly_best_five|floatformat:1 }}
+                            {% else %}
+                                <span style="color: #95a5a6;">-</span>
+                            {% endif %}
                         </td>
                         <td class="hide-mobile" style="text-align: right;">
                             {{ member.monthly_average|floatformat:2 }}
@@ -155,13 +162,6 @@
                                 </span>
                             {% else %}
                                 <span style="color: #95a5a6;">0</span>
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right;">
-                            {% if member.monthly_best_five is not None %}
-                                {{ member.monthly_best_five|floatformat:1 }}
-                            {% else %}
-                                <span style="color: #95a5a6;">-</span>
                             {% endif %}
                         </td>
                     </tr>

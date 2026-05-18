@@ -20,39 +20,6 @@
                     </div>
                 {% endif %}
                 
-                <!-- Session ID and Date in 2-column grid -->
-                <div class="session-info-grid">
-                    <!-- Session ID -->
-                    <div>
-                        <label for="{{ form.session_id.id_for_label }}" class="form-label">Session ID</label>
-                        {{ form.session_id }}
-                        <small class="text-muted d-block mt-2">e.g., 2025-01-15-game1</small>
-                        {% if form.session_id.errors %}
-                            <div class="text-danger mt-2">
-                                {% for error in form.session_id.errors %}
-                                    <small>{{ error }}</small><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Session Date -->
-                    <div>
-                        <label for="{{ form.session_date.id_for_label }}" class="form-label">Session Date</label>
-                        {{ form.session_date }}
-                        <small class="text-muted d-block mt-2">Date of the game</small>
-                        {% if form.session_date.errors %}
-                            <div class="text-danger mt-2">
-                                {% for error in form.session_date.errors %}
-                                    <small>{{ error }}</small><br>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <hr class="my-4">
-                
                 <!-- Player Scores in 4-column grid -->
                 <h5 class="mb-3">Player Scores</h5>
                 

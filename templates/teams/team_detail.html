@@ -75,7 +75,13 @@
     <div class="team-main-content">
         <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <div class="standings-header">
-                <h3 style="margin: 0;"> Active Members</h3>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <h3 style="margin: 0;">Active Members</h3>
+                    <div style="display: flex; border-radius: 4px; overflow: hidden; border: 1px solid #ddd;">
+                        <button id="btn-monthly" style="padding: 3px 14px; font-size: 0.85rem; cursor: pointer; background-color: #3498db; color: white; border: none; font-weight: bold;">Monthly</button>
+                        <button id="btn-yearly" style="padding: 3px 14px; font-size: 0.85rem; cursor: pointer; background-color: #ecf0f1; color: #555; border: none;">Yearly</button>
+                    </div>
+                </div>
                 <div class="standings-actions">
                     <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.9rem;">View Standings</a>
                     <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">View Sessions</a>
@@ -105,26 +111,31 @@
                     </div>
                 </div>
             </div>
-            {% if standings %}
+            <!-- Monthly Standings -->
+            <div id="standings-monthly">
+            {% if monthly_standings %}
                 <div class="table-responsive">
-                <table id="standingsTable" style="margin-top: 1rem;">
+                <table id="standingsTableMonthly" style="margin-top: 1rem;">
                     <thead>
                         <tr>
                             <th class="rank-cell">#</th>
                             <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
                                 Name <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
-                                Total Score <span class="sort-indicator">▼</span>
-                            </th>
                             <th class="sortable" data-sort="games" style="text-align: right; cursor: pointer; user-select: none;">
-                                Games<span class="sort-indicator"></span>
+                                Games Played <span class="sort-indicator"></span>
                             </th>
-                            <th class="sortable hide-mobile" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
-                                Avg/Game<span class="sort-indicator"></span>
+                            <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
+                                Total Pts <span class="sort-indicator">▼</span>
                             </th>
-                            <th class="sortable" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
-                                Avg Place <span class="sort-indicator"></span>
+                            <th class="sortable" data-sort="bestfive" style="text-align: right; width: 130px; cursor: pointer; user-select: none;">
+                                Top 5 Consec <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-mobile" data-sort="average" style="text-align: right; width: 140px; cursor: pointer; user-select: none;">
+                                Avg Pts <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-mobile" data-sort="placement" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
+                                Avg Pos <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable hide-tablet" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
                                 1st<span class="sort-indicator"></span>
@@ -139,85 +150,51 @@
                                 4th<span class="sort-indicator"></span>
                             </th>
                             <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
-                                Chombos <span class="sort-indicator"></span>
+                                Pen <span class="sort-indicator"></span>
                             </th>
                         </tr>
                     </thead>
-                    <tbody id="standingsBody">
-                        {% for member in standings %}
-                            <tr data-name="{{ member.name }}"
-                                data-total="{% if member.calculated_score %}{{ member.calculated_score.total }}{% else %}0{% endif %}"
-                                data-games="{% if member.calculated_score %}{{ member.calculated_score.games_played }}{% else %}0{% endif %}"
-                                data-average="{% if member.calculated_score %}{{ member.calculated_score.average_per_game }}{% else %}0{% endif %}"
-                                data-placement="{% if member.calculated_score and member.calculated_score.average_placement > 0 %}{{ member.calculated_score.average_placement }}{% else %}999{% endif %}"
-                                data-first="{% if member.calculated_score %}{{ member.calculated_score.first_place_count }}{% else %}0{% endif %}"
-                                data-second="{% if member.calculated_score %}{{ member.calculated_score.second_place_count }}{% else %}0{% endif %}"
-                                data-third="{% if member.calculated_score %}{{ member.calculated_score.third_place_count }}{% else %}0{% endif %}"
-                                data-fourth="{% if member.calculated_score %}{{ member.calculated_score.fourth_place_count }}{% else %}0{% endif %}"
-                                data-chombo="{% if member.calculated_score %}{{ member.calculated_score.chombo_count }}{% else %}0{% endif %}">
-                                <td class="rank-cell"><strong>{{ forloop.counter }}</strong></td>
-                                <td>{{ member.name }}</td>
+                    <tbody id="standingsBodyMonthly">
+                        {% for member in monthly_standings %}
+                            <tr data-name="{{ member.shown_name }}"
+                                data-total="{{ member.monthly_total }}"
+                                data-games="{{ member.monthly_games }}"
+                                data-average="{{ member.monthly_average }}" 
+                                data-placement="{{ member.monthly_avg_placement|default:999 }}"
+                                data-first="{{ member.monthly_first_place }}"
+                                data-second="{{ member.monthly_second_place }}"
+                                data-third="{{ member.monthly_third_place }}"
+                                data-fourth="{{ member.monthly_fourth_place }}"
+                                data-chombo="{{ member.monthly_chombo_count }}"
+                                data-bestfive="{% if member.monthly_best_five is not None %}{{ member.monthly_best_five }}{% else %}-9999{% endif %}">
+                                <td class="rank-cell">{{ forloop.counter }}</td>
+                                <td>{{ member.shown_name }}</td>
+                                <td style="text-align: right;">{{ member.monthly_games }}</td>
+                                <td style="text-align: right;">{{ member.monthly_total|floatformat:2 }}</td>
                                 <td style="text-align: right;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.total|floatformat:2 }}
+                                    {% if member.monthly_best_five is not None %}
+                                        {{ member.monthly_best_five|floatformat:1 }}
                                     {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td style="text-align: right;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.games_played }}
-                                    {% else %}
-                                        0
+                                        <span style="color: #95a5a6;">-</span>
                                     {% endif %}
                                 </td>
                                 <td class="hide-mobile" style="text-align: right;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.average_per_game|floatformat:2 }}
-                                    {% else %}
-                                        0.00
-                                    {% endif %}
+                                    {{ member.monthly_average|floatformat:2 }}
                                 </td>
-                                <td style="text-align: right;">
-                                    {% if member.calculated_score and member.calculated_score.average_placement > 0 %}
-                                        {{ member.calculated_score.average_placement|floatformat:2 }}
+                                <td class="hide-mobile" style="text-align: right;">
+                                    {% if member.monthly_avg_placement > 0 %}
+                                        {{ member.monthly_avg_placement|floatformat:2 }}
                                     {% else %}
                                         -
                                     {% endif %}
                                 </td>
-                                <td class="hide-tablet" style="text-align: center;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.first_place_count }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="hide-tablet" style="text-align: center;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.second_place_count }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="hide-tablet" style="text-align: center;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.third_place_count }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="hide-tablet" style="text-align: center;">
-                                    {% if member.calculated_score %}
-                                        {{ member.calculated_score.fourth_place_count }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.monthly_first_place }}</td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.monthly_second_place }}</td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.monthly_third_place }}</td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.monthly_fourth_place }}</td>
                                 <td class="hide-mobile" style="text-align: center;">
-                                    {% if member.calculated_score and member.calculated_score.chombo_count > 0 %}
-                                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">
-                                            {{ member.calculated_score.chombo_count }}
-                                        </span>
+                                    {% if member.monthly_chombo_count > 0 %}
+                                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">{{ member.monthly_chombo_count }}</span>
                                     {% else %}
                                         <span style="color: #95a5a6;">0</span>
                                     {% endif %}
@@ -228,8 +205,90 @@
                 </table>
                 </div>
             {% else %}
-                <p style="color: #999; text-align: center; padding: 2rem;">No members yet.</p>
+                <p style="color: #999; text-align: center; padding: 2rem;">No games recorded for {{ current_month }}.</p>
             {% endif %}
+            </div>
+
+            <!-- Yearly Standings -->
+            <div id="standings-yearly" style="display: none;">
+            {% if standings %}
+                <div class="table-responsive">
+                <table id="standingsTableYearly" style="margin-top: 1rem;">
+                    <thead>
+                        <tr>
+                            <th class="rank-cell">#</th>
+                            <th class="sortable" data-sort="name" style="cursor: pointer; user-select: none;">
+                                Name <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="games" style="text-align: right; cursor: pointer; user-select: none;">
+                                Games Played <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
+                                Total Points <span class="sort-indicator">▼</span>
+                            </th>
+                            <th class="sortable hide-mobile" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
+                                Average Points <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
+                                Average Position <span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-tablet" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
+                                1st<span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-tablet" data-sort="second" style="text-align: center; cursor: pointer; user-select: none;">
+                                2nd<span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-tablet" data-sort="third" style="text-align: center; cursor: pointer; user-select: none;">
+                                3rd<span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-tablet" data-sort="fourth" style="text-align: center; cursor: pointer; user-select: none;">
+                                4th<span class="sort-indicator"></span>
+                            </th>
+                            <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
+                                Penalties <span class="sort-indicator"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="standingsBodyYearly">
+                        {% for member in standings %}
+                            <tr data-name="{{ member.shown_name }}"
+                                data-total="{{ member.yearly_total }}"
+                                data-games="{{ member.yearly_games }}"
+                                data-average="{{ member.yearly_average }}"
+                                data-placement="{% if member.yearly_avg_placement > 0 %}{{ member.yearly_avg_placement }}{% else %}999{% endif %}"
+                                data-first="{{ member.yearly_first_place }}"
+                                data-second="{{ member.yearly_second_place }}"
+                                data-third="{{ member.yearly_third_place }}"
+                                data-fourth="{{ member.yearly_fourth_place }}"
+                                data-chombo="{{ member.yearly_chombo_count }}">
+                                <td class="rank-cell"><strong>{{ forloop.counter }}</strong></td>
+                                <td>{{ member.shown_name }}</td>
+                                <td style="text-align: right;">{{ member.yearly_games }}</td>
+                                <td style="text-align: right;">{{ member.yearly_total|floatformat:2 }}</td>
+                                <td class="hide-mobile" style="text-align: right;">{{ member.yearly_average|floatformat:2 }}</td>
+                                <td style="text-align: right;">
+                                    {% if member.yearly_avg_placement > 0 %}{{ member.yearly_avg_placement|floatformat:2 }}{% else %}-{% endif %}
+                                </td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.yearly_first_place }}</td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.yearly_second_place }}</td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.yearly_third_place }}</td>
+                                <td class="hide-tablet" style="text-align: center;">{{ member.yearly_fourth_place }}</td>
+                                <td class="hide-mobile" style="text-align: center;">
+                                    {% if member.yearly_chombo_count > 0 %}
+                                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">{{ member.yearly_chombo_count }}</span>
+                                    {% else %}
+                                        <span style="color: #95a5a6;">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            {% else %}
+                <p style="color: #999; text-align: center; padding: 2rem;">No games recorded this year.</p>
+            {% endif %}
+            </div>
         </div>
         {% if inactive_members %}
             <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 1rem;">
@@ -253,113 +312,127 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const table = document.getElementById('standingsTable');
-    if (!table) return;
-    
-    const tbody = document.getElementById('standingsBody');
-    const headers = table.querySelectorAll('th.sortable');
-    let currentSort = { column: 'total', direction: 'desc' };
-    
-    headers.forEach(header => {
-        header.addEventListener('click', function() {
-            const sortBy = this.dataset.sort;
-            
-            // Toggle direction if clicking the same column
-            if (currentSort.column === sortBy) {
-                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                // Default direction for new column
-                currentSort.column = sortBy;
-                currentSort.direction = sortBy === 'name' ? 'asc' : 'desc';
-            }
-            
-            sortTable(sortBy, currentSort.direction);
-            updateSortIndicators();
-        });
-    });
-    
-    function sortTable(column, direction) {
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        rows.sort((a, b) => {
-            let aVal = a.dataset[column];
-            let bVal = b.dataset[column];
-            
-            // Convert to appropriate type
-            if (column === 'name') {
-                aVal = aVal.toLowerCase();
-                bVal = bVal.toLowerCase();
-            } else {
-                aVal = parseFloat(aVal);
-                bVal = parseFloat(bVal);
-            }
-            
-            if (direction === 'asc') {
-                return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-            } else {
-                return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-            }
-        });
-        
-        // Re-append rows in new order
-        rows.forEach(row => tbody.appendChild(row));
-        
-        // Update rank numbers
-        updateRankNumbers();
+    // --- Monthly / Yearly toggle ---
+    const btnMonthly = document.getElementById('btn-monthly');
+    const btnYearly = document.getElementById('btn-yearly');
+    const divMonthly = document.getElementById('standings-monthly');
+    const divYearly = document.getElementById('standings-yearly');
+
+    function setActiveTab(tab) {
+        if (tab === 'monthly') {
+            divMonthly.style.display = 'block';
+            divYearly.style.display = 'none';
+            btnMonthly.style.backgroundColor = '#3498db';
+            btnMonthly.style.color = 'white';
+            btnMonthly.style.fontWeight = 'bold';
+            btnYearly.style.backgroundColor = '#ecf0f1';
+            btnYearly.style.color = '#555';
+            btnYearly.style.fontWeight = 'normal';
+        } else {
+            divMonthly.style.display = 'none';
+            divYearly.style.display = 'block';
+            btnYearly.style.backgroundColor = '#3498db';
+            btnYearly.style.color = 'white';
+            btnYearly.style.fontWeight = 'bold';
+            btnMonthly.style.backgroundColor = '#ecf0f1';
+            btnMonthly.style.color = '#555';
+            btnMonthly.style.fontWeight = 'normal';
+        }
     }
-    
-    function updateRankNumbers() {
-        const rows = tbody.querySelectorAll('tr');
-        rows.forEach((row, index) => {
-            const rankCell = row.querySelector('.rank-cell strong');
-            if (rankCell) {
-                rankCell.textContent = index + 1;
-            }
-        });
-    }
-    
-    function updateSortIndicators() {
-        // Clear all indicators
+
+    if (btnMonthly) btnMonthly.addEventListener('click', () => setActiveTab('monthly'));
+    if (btnYearly) btnYearly.addEventListener('click', () => setActiveTab('yearly'));
+
+    // --- Reusable table sort ---
+    function initTableSort(tableId, tbodyId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const tbody = document.getElementById(tbodyId);
+        const headers = table.querySelectorAll('th.sortable');
+        let currentSort = { column: 'total', direction: 'desc' };
+
         headers.forEach(header => {
-            const indicator = header.querySelector('.sort-indicator');
-            if (indicator) {
-                indicator.textContent = '';
-            }
+            header.addEventListener('click', function() {
+                const sortBy = this.dataset.sort;
+                if (currentSort.column === sortBy) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = sortBy;
+                    currentSort.direction = sortBy === 'name' ? 'asc' : 'desc';
+                }
+                sortTable(sortBy, currentSort.direction);
+                updateSortIndicators();
+            });
         });
-        
-        // Set current indicator
-        const currentHeader = Array.from(headers).find(h => h.dataset.sort === currentSort.column);
-        if (currentHeader) {
-            const indicator = currentHeader.querySelector('.sort-indicator');
-            if (indicator) {
-                indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+
+        function sortTable(column, direction) {
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort((a, b) => {
+                let aVal = a.dataset[column];
+                let bVal = b.dataset[column];
+                if (column === 'name') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                } else {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                }
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                } else {
+                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                }
+            });
+            rows.forEach(row => tbody.appendChild(row));
+            updateRankNumbers();
+        }
+
+        function updateRankNumbers() {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach((row, index) => {
+                const rankCell = row.querySelector('.rank-cell strong');
+                if (rankCell) rankCell.textContent = index + 1;
+            });
+        }
+
+        function updateSortIndicators() {
+            headers.forEach(header => {
+                const indicator = header.querySelector('.sort-indicator');
+                if (indicator) indicator.textContent = '';
+            });
+            const currentHeader = Array.from(headers).find(h => h.dataset.sort === currentSort.column);
+            if (currentHeader) {
+                const indicator = currentHeader.querySelector('.sort-indicator');
+                if (indicator) indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
             }
         }
     }
-    
-    // Dropdown functionality for export
+
+    initTableSort('standingsTableMonthly', 'standingsBodyMonthly');
+    initTableSort('standingsTableYearly', 'standingsBodyYearly');
+
+    // --- Dropdown export ---
     const dropdown = document.querySelector('.dropdown');
     const dropdownBtn = dropdown ? dropdown.querySelector('.btn') : null;
     const dropdownContent = dropdown ? dropdown.querySelector('.dropdown-content') : null;
-    
+
     if (dropdownBtn && dropdownContent) {
         dropdownBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
         });
-        
-        // Close dropdown when clicking outside
+
         document.addEventListener('click', function(e) {
             if (dropdown && !dropdown.contains(e.target)) {
                 dropdownContent.style.display = 'none';
             }
         });
-        
-        // Handle export links
+
         const exportLinks = dropdownContent.querySelectorAll('.export-link');
         const exportYearSelect = document.getElementById('export-year');
-        
+
         exportLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();

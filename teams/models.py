@@ -72,12 +72,17 @@ class Member(models.Model):
     """
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members', db_index=True)
     name = models.CharField(max_length=100)
+    display_name = models.CharField(max_length=100, blank=True, default='', help_text='If set, shown instead of name in standings tables')
     join_date = models.DateField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
+
+    @property
+    def shown_name(self):
+        return self.display_name if self.display_name else self.name
         unique_together = ['team', 'name']
         indexes = [
             models.Index(fields=['team', 'name']),
