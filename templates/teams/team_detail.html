@@ -83,8 +83,8 @@
                     </div>
                 </div>
                 <div class="standings-actions">
-                    <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.9rem;">View Standings</a>
-                    <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">View Sessions</a>
+                    <a href="{% url 'scores:standings' slug=team.slug %}" class="btn" style="background-color: #3498db; color: white; padding: 6px 12px; font-size: 0.9rem;">Standing Details</a>
+                    <a href="{% url 'scores:sessions' slug=team.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">Session Details</a>
                     <div class="dropdown" style="display: inline-block; position: relative;">
                         <button class="btn" style="background-color: #27ae60; color: white; padding: 6px 12px; font-size: 0.9rem;">Export Year ▼</button>
                         <div class="dropdown-content" style="display: none; position: absolute; background-color: white; min-width: 200px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; right: 0; border-radius: 4px; margin-top: 5px;">
@@ -126,16 +126,10 @@
                                 Games Played <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
-                                Total Pts <span class="sort-indicator">▼</span>
+                                Total Points <span class="sort-indicator">▼</span>
                             </th>
-                            <th class="sortable" data-sort="bestfive" style="text-align: right; width: 130px; cursor: pointer; user-select: none;">
-                                Top 5 Consec <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable hide-mobile" data-sort="average" style="text-align: right; width: 140px; cursor: pointer; user-select: none;">
-                                Avg Pts <span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable hide-mobile" data-sort="placement" style="text-align: right; width: 120px; cursor: pointer; user-select: none;">
-                                Avg Pos <span class="sort-indicator"></span>
+                            <th class="sortable" data-sort="bestfive" style="text-align: right; cursor: pointer; user-select: none;">
+                                Best Five Consec. <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable hide-tablet" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
                                 1st<span class="sort-indicator"></span>
@@ -148,9 +142,6 @@
                             </th>
                             <th class="sortable hide-tablet" data-sort="fourth" style="text-align: center; cursor: pointer; user-select: none;">
                                 4th<span class="sort-indicator"></span>
-                            </th>
-                            <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
-                                Pen <span class="sort-indicator"></span>
                             </th>
                         </tr>
                     </thead>
@@ -178,27 +169,10 @@
                                         <span style="color: #95a5a6;">-</span>
                                     {% endif %}
                                 </td>
-                                <td class="hide-mobile" style="text-align: right;">
-                                    {{ member.monthly_average|floatformat:2 }}
-                                </td>
-                                <td class="hide-mobile" style="text-align: right;">
-                                    {% if member.monthly_avg_placement > 0 %}
-                                        {{ member.monthly_avg_placement|floatformat:2 }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
                                 <td class="hide-tablet" style="text-align: center;">{{ member.monthly_first_place }}</td>
                                 <td class="hide-tablet" style="text-align: center;">{{ member.monthly_second_place }}</td>
                                 <td class="hide-tablet" style="text-align: center;">{{ member.monthly_third_place }}</td>
                                 <td class="hide-tablet" style="text-align: center;">{{ member.monthly_fourth_place }}</td>
-                                <td class="hide-mobile" style="text-align: center;">
-                                    {% if member.monthly_chombo_count > 0 %}
-                                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">{{ member.monthly_chombo_count }}</span>
-                                    {% else %}
-                                        <span style="color: #95a5a6;">0</span>
-                                    {% endif %}
-                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -224,13 +198,13 @@
                                 Games Played <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-sort="total" style="text-align: right; cursor: pointer; user-select: none;">
-                                Total Points <span class="sort-indicator">▼</span>
+                                Total Pts <span class="sort-indicator">▼</span>
                             </th>
                             <th class="sortable hide-mobile" data-sort="average" style="text-align: right; cursor: pointer; user-select: none;">
-                                Average Points <span class="sort-indicator"></span>
+                                Avg Pts <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable" data-sort="placement" style="text-align: right; cursor: pointer; user-select: none;">
-                                Average Position <span class="sort-indicator"></span>
+                                Avg Pos <span class="sort-indicator"></span>
                             </th>
                             <th class="sortable hide-tablet" data-sort="first" style="text-align: center; cursor: pointer; user-select: none;">
                                 1st<span class="sort-indicator"></span>
@@ -245,7 +219,7 @@
                                 4th<span class="sort-indicator"></span>
                             </th>
                             <th class="sortable hide-mobile" data-sort="chombo" style="text-align: center; cursor: pointer; user-select: none;">
-                                Penalties <span class="sort-indicator"></span>
+                                Chombo <span class="sort-indicator"></span>
                             </th>
                         </tr>
                     </thead>
@@ -261,7 +235,7 @@
                                 data-third="{{ member.yearly_third_place }}"
                                 data-fourth="{{ member.yearly_fourth_place }}"
                                 data-chombo="{{ member.yearly_chombo_count }}">
-                                <td class="rank-cell"><strong>{{ forloop.counter }}</strong></td>
+                                <td class="rank-cell">{{ forloop.counter }}</td>
                                 <td>{{ member.shown_name }}</td>
                                 <td style="text-align: right;">{{ member.yearly_games }}</td>
                                 <td style="text-align: right;">{{ member.yearly_total|floatformat:2 }}</td>
