@@ -16,7 +16,7 @@ from teams.models import Team, Member
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 from accounts.models import TeamAdmin
-from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year
+from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year, get_member_game_history
 from datetime import date
 from scores.export_utils import export_standings_to_csv, export_standings_to_pdf
 
@@ -329,6 +329,71 @@ class AuthorizationView(LoginRequiredMixin, View):
                 'error_type': 'error',
                 'message': f'An error occurred: {str(e)}'
             }, status=500)
+
+
+class MemberDetailView(TeamSlugMixin, TeamContextMixin, DetailView):
+    """Display detailed stats for a single member (public view - no auth required)."""
+    model = Member
+    template_name = 'teams/member_detail.html'
+    context_object_name = 'member'
+
+    def get_object(self):
+        return get_object_or_404(Member, pk=self.kwargs['pk'], team=self.team)
+
+    def get_context_data(self, **kwargs):
+        from django.core.paginator import Paginator
+        context = super().get_context_data(**kwargs)
+        member = self.object
+
+        stats = get_member_game_history(member)
+        game_history = stats['game_history']  # chronological, used for chart data
+        context['monthly_breakdown'] = stats['monthly_breakdown']
+
+        if game_history:
+            context['best_game'] = max(game_history, key=lambda g: g['calculated'])
+            context['worst_game'] = min(game_history, key=lambda g: g['calculated'])
+
+        # Paginate game history newest-first for the table (20 per page)
+        paginator = Paginator(list(reversed(game_history)), 20)
+        page_obj = paginator.get_page(self.request.GET.get('page', 1))
+        context['game_history'] = game_history  # used for chart data and {% if %} check
+        context['page_obj'] = page_obj
+
+        # Rank in all-time standings
+        standings = get_team_standings(self.team)
+        context['rank'] = None
+        for i, m in enumerate(standings, start=1):
+            if m.pk == member.pk:
+                context['rank'] = i
+                break
+        context['total_ranked'] = standings.count()
+
+        # Placement distribution bars
+        cs = getattr(member, 'calculated_score', None)
+        if cs and cs.games_played > 0:
+            games = cs.games_played
+            context['placement_bars'] = [
+                {'label': '1st', 'count': cs.first_place_count, 'pct': cs.first_place_count / games * 100, 'color': '#27ae60'},
+                {'label': '2nd', 'count': cs.second_place_count, 'pct': cs.second_place_count / games * 100, 'color': '#3498db'},
+                {'label': '3rd', 'count': cs.third_place_count, 'pct': cs.third_place_count / games * 100, 'color': '#f39c12'},
+                {'label': '4th', 'count': cs.fourth_place_count, 'pct': cs.fourth_place_count / games * 100, 'color': '#e74c3c'},
+            ]
+        else:
+            context['placement_bars'] = []
+
+        # Chart data: cumulative score and per-game score over time
+        per_game_scores = [round(g['calculated'], 2) for g in game_history]
+        cumulative_scores = []
+        running = 0.0
+        for score in per_game_scores:
+            running += score
+            cumulative_scores.append(round(running, 2))
+        chart_dates = [str(g['date']) for g in game_history]
+        context['chart_dates_json'] = json.dumps(chart_dates)
+        context['chart_scores_json'] = json.dumps(cumulative_scores)
+        context['chart_per_game_json'] = json.dumps(per_game_scores)
+
+        return context
 
 
 class TeamExportView(TeamSlugMixin, TeamContextMixin, DetailView):

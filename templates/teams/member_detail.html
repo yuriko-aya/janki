@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load scores_filters %}
+
+{% block title %}{{ member.shown_name }} — {{ team.name }} - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div class="team-header">
+    <div class="team-header-info">
+        <h1 class="team-title">
+            <a href="{% url 'teams:team_detail' slug=team.slug %}">{{ team.name }}</a> — {{ member.shown_name }}
+        </h1>
+        <p style="color: #666; margin-top: 0.25rem;">Member since {{ member.join_date|date:"M d, Y" }}</p>
+    </div>
+    <div class="team-header-actions">
+        <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Team</a>
+    </div>
+</div>
+
+{% with cs=member.calculated_score %}
+
+<!-- Summary Stats -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div style="background-color: white; padding: 1.25rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em;">Rank</div>
+        <div style="font-size: 2rem; font-weight: bold; color: #2c3e50; margin-top: 0.25rem;">
+            {% if rank %}#{{ rank }}{% else %}—{% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: #95a5a6;">of {{ total_ranked }}</div>
+    </div>
+
+    <div style="background-color: white; padding: 1.25rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em;">Total Score</div>
+        <div style="font-size: 2rem; font-weight: bold; color: {% if cs and cs.total >= 0 %}#27ae60{% else %}#e74c3c{% endif %}; margin-top: 0.25rem;">
+            {% if cs %}{{ cs.total|floatformat:1 }}{% else %}0{% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: #95a5a6;">points</div>
+    </div>
+
+    <div style="background-color: white; padding: 1.25rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em;">Games Played</div>
+        <div style="font-size: 2rem; font-weight: bold; color: #2c3e50; margin-top: 0.25rem;">
+            {% if cs %}{{ cs.games_played }}{% else %}0{% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: #95a5a6;">sessions</div>
+    </div>
+
+    <div style="background-color: white; padding: 1.25rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em;">Avg / Game</div>
+        <div style="font-size: 2rem; font-weight: bold; color: {% if cs and cs.average_per_game >= 0 %}#27ae60{% else %}#e74c3c{% endif %}; margin-top: 0.25rem;">
+            {% if cs %}{{ cs.average_per_game|floatformat:1 }}{% else %}0{% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: #95a5a6;">points</div>
+    </div>
+
+    <div style="background-color: white; padding: 1.25rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em;">Avg Position</div>
+        <div style="font-size: 2rem; font-weight: bold; color: #2c3e50; margin-top: 0.25rem;">
+            {% if cs and cs.games_played > 0 %}{{ cs.average_placement|floatformat:2 }}{% else %}—{% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: #95a5a6;">placement</div>
+    </div>
+
+    <div style="background-color: white; padding: 1.25rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em;">Chombos</div>
+        <div style="font-size: 2rem; font-weight: bold; color: {% if cs and cs.chombo_count > 0 %}#e74c3c{% else %}#2c3e50{% endif %}; margin-top: 0.25rem;">
+            {% if cs %}{{ cs.chombo_count }}{% else %}0{% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: #95a5a6;">total</div>
+    </div>
+</div>
+
+{% if game_history %}
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+
+    <!-- Placement Distribution -->
+    <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 1.25rem 0;">Placement Distribution</h3>
+        {% for bar in placement_bars %}
+        <div style="margin-bottom: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                <span style="font-weight: bold; color: {{ bar.color }};">{{ bar.label }}</span>
+                <span style="color: #7f8c8d; font-size: 0.9rem;">{{ bar.count }} &nbsp;({{ bar.pct|floatformat:0 }}%)</span>
+            </div>
+            <div style="background-color: #ecf0f1; border-radius: 3px; height: 12px; overflow: hidden;">
+                <div style="width: {{ bar.pct|floatformat:0 }}%; background-color: {{ bar.color }}; height: 100%; border-radius: 3px; min-width: {% if bar.count > 0 %}4px{% else %}0{% endif %};"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Notable Games -->
+    <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 style="margin: 0 0 1.25rem 0;">Notable Games</h3>
+        {% if best_game %}
+        <div style="margin-bottom: 1rem; padding: 1rem; background-color: #f0faf5; border-left: 4px solid #27ae60; border-radius: 0 4px 4px 0;">
+            <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Best Game</div>
+            <div style="font-size: 1.5rem; font-weight: bold; color: #27ae60;">{{ best_game.calculated|floatformat:2 }} pts</div>
+            <div style="font-size: 0.85rem; color: #555; margin-top: 0.25rem;">
+                {{ best_game.date|date:"M d, Y" }} &bull; Raw: {{ best_game.raw_score }}
+            </div>
+        </div>
+        {% endif %}
+        {% if worst_game %}
+        <div style="padding: 1rem; background-color: #fef5f5; border-left: 4px solid #e74c3c; border-radius: 0 4px 4px 0;">
+            <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Worst Game</div>
+            <div style="font-size: 1.5rem; font-weight: bold; color: #e74c3c;">{{ worst_game.calculated|floatformat:2 }} pts</div>
+            <div style="font-size: 0.85rem; color: #555; margin-top: 0.25rem;">
+                {{ worst_game.date|date:"M d, Y" }} &bull; Raw: {{ worst_game.raw_score }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Score Over Time -->
+<div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+    <h3 style="margin: 0 0 1rem 0;">Score Over Time</h3>
+    <canvas id="scoreChart" style="max-height: 300px;"></canvas>
+</div>
+
+<!-- Per-game History -->
+<div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+    <h3 style="margin: 0 0 1rem 0;">Game History</h3>
+    <div id="game-history-container">
+    <div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th class="hide-mobile">Session</th>
+                <th style="text-align: right;">Raw Score</th>
+                <th style="text-align: center;">Placement</th>
+                <th style="text-align: right;">Score</th>
+                <th class="hide-mobile" style="text-align: center;">Chombo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for game in page_obj %}
+            <tr>
+                <td>{{ game.date|date:"M d, Y" }}</td>
+                <td class="hide-mobile" style="font-family: monospace; font-size: 0.85rem; color: #555;">{{ game.session_id }}</td>
+                <td style="text-align: right;">{{ game.raw_score }}</td>
+                <td style="text-align: center;">
+                    {% if game.placement == 1.0 %}
+                        <span style="background-color: #27ae60; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem; font-weight: bold;">1st</span>
+                    {% elif game.placement == 2.0 %}
+                        <span style="background-color: #3498db; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem; font-weight: bold;">2nd</span>
+                    {% elif game.placement == 3.0 %}
+                        <span style="background-color: #f39c12; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem; font-weight: bold;">3rd</span>
+                    {% elif game.placement == 4.0 %}
+                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem; font-weight: bold;">4th</span>
+                    {% else %}
+                        <span style="background-color: #9b59b6; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem;">{{ game.placement }}</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right; font-weight: bold; color: {% if game.calculated >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                    {{ game.calculated|floatformat:2 }}
+                </td>
+                <td class="hide-mobile" style="text-align: center;">
+                    {% if game.chombo > 0 %}
+                        <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.85rem;">{{ game.chombo }}×</span>
+                    {% else %}
+                        <span style="color: #95a5a6;">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div style="margin-top: 1rem; text-align: center;">
+        <div style="display: inline-flex; gap: 0.5rem; align-items: center;">
+            {% if page_obj.has_previous %}
+                <a href="?page=1" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Previous</a>
+            {% endif %}
+            <span style="padding: 0.5rem 1rem; background-color: #3498db; color: white; border-radius: 4px;">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Last</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    </div><!-- #game-history-container -->
+</div>
+
+<!-- Monthly Breakdown -->
+{% if monthly_breakdown %}
+<div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 1rem 0;">Month-by-Month Breakdown</h3>
+    <div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th style="text-align: right;">Games</th>
+                <th style="text-align: right;">Total</th>
+                <th style="text-align: right;">Avg / Game</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in monthly_breakdown reversed %}
+            <tr>
+                <td>{{ row.month|month_name_filter }} {{ row.year }}</td>
+                <td style="text-align: right;">{{ row.games }}</td>
+                <td style="text-align: right; font-weight: bold; color: {% if row.total >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                    {{ row.total|floatformat:2 }}
+                </td>
+                <td style="text-align: right; color: {% if row.average >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                    {{ row.average|floatformat:2 }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div style="background-color: white; padding: 3rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; color: #999;">
+    <p>No games recorded yet.</p>
+</div>
+{% endif %}
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_dates_json %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    var dates = {{ chart_dates_json|safe }};
+    var cumulative = {{ chart_scores_json|safe }};
+    var perGame = {{ chart_per_game_json|safe }};
+    var ctx = document.getElementById('scoreChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [
+                {
+                    label: 'Cumulative Score',
+                    data: cumulative,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.08)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Per-Game Score',
+                    data: perGame,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
+                    pointRadius: 4,
+                    borderDash: [5, 4],
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y2'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Cumulative' }
+                },
+                y2: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: 'Per Game' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+}());
+</script>
+{% endif %}
+<script>
+(function () {
+    function loadPage(url) {
+        var container = document.getElementById('game-history-container');
+        if (!container) return;
+        container.style.opacity = '0.4';
+        container.style.pointerEvents = 'none';
+        fetch(url)
+            .then(function (resp) { return resp.text(); })
+            .then(function (html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var fresh = doc.getElementById('game-history-container');
+                if (fresh) {
+                    container.innerHTML = fresh.innerHTML;
+                    history.pushState(null, '', url);
+                    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            })
+            .catch(function () {})
+            .finally(function () {
+                container.style.opacity = '';
+                container.style.pointerEvents = '';
+            });
+    }
+
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest('#game-history-container a');
+        if (!link) return;
+        e.preventDefault();
+        loadPage(link.href);
+    });
+
+    window.addEventListener('popstate', function () {
+        loadPage(location.href);
+    });
+}());
+</script>
+{% endblock %}
