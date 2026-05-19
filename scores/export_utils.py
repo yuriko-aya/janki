@@ -76,8 +76,9 @@ def export_standings_to_csv(team, standings, month=None, year=None, is_yearly=Fa
     writer.writerow([
         'Rank',
         'Player Name',
-        'Total Score',
         'Games Played',
+        'Total Score',
+        'Best 5 Consecutive',
         'Average/Game',
         'Avg Placement',
         '1st Place',
@@ -94,8 +95,9 @@ def export_standings_to_csv(team, standings, month=None, year=None, is_yearly=Fa
             writer.writerow([
                 rank,
                 member.name,
-                f"{member.yearly_total:.2f}",
                 member.yearly_games,
+                f"{member.yearly_total:.2f}",
+                '',  # Placeholder for Best 5 Consecutive (not calculated in this example)
                 f"{member.yearly_average:.2f}",
                 f"{member.yearly_avg_placement:.2f}" if member.yearly_avg_placement else '',
                 member.yearly_first_place,
@@ -109,8 +111,9 @@ def export_standings_to_csv(team, standings, month=None, year=None, is_yearly=Fa
             writer.writerow([
                 rank,
                 member.name,
-                f"{member.monthly_total:.2f}",
                 member.monthly_games,
+                f"{member.monthly_total:.2f}",
+                f"{member.monthly_best_five:.2f}" if member.monthly_best_five else '',
                 f"{member.monthly_average:.2f}",
                 f"{member.monthly_avg_placement:.2f}" if member.monthly_avg_placement else '',
                 member.monthly_first_place,
@@ -163,6 +166,15 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
         spaceAfter=30,
         alignment=TA_CENTER
     )
+    header_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.whitesmoke,
+        alignment=TA_CENTER,
+        leading=11,
+    )
     
     # Title
     if is_yearly and year:
@@ -179,7 +191,10 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
     
     # Table data
     data = [
-        ['Rank', 'Player', 'Total', 'Games', 'Avg/Game', 'Avg Plc', '1st', '2nd', '3rd', '4th', 'Chombo']
+        [Paragraph(h, header_style) for h in [
+            'Rank', 'Player', 'Games\nPlayed', 'Total\nPoints', 'Best 5\nConsec.',
+            'Avg\nPoints', 'Avg\nPosition', '1st', '2nd', '3rd', '4th', 'Chombo'
+        ]]
     ]
     
     for rank, member in enumerate(standings, start=1):
@@ -188,8 +203,9 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
             data.append([
                 str(rank),
                 member.name,
-                f"{member.yearly_total:.1f}",
                 str(member.yearly_games),
+                f"{member.yearly_total:.1f}",
+                "",
                 f"{member.yearly_average:.1f}",
                 f"{member.yearly_avg_placement:.1f}" if member.yearly_avg_placement else '-',
                 str(member.yearly_first_place),
@@ -203,8 +219,9 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
             data.append([
                 str(rank),
                 member.name,
-                f"{member.monthly_total:.1f}",
                 str(member.monthly_games),
+                f"{member.monthly_total:.1f}",
+                f"{member.monthly_best_five:.1f}" if member.monthly_best_five else '-',
                 f"{member.monthly_average:.1f}",
                 f"{member.monthly_avg_placement:.1f}" if member.monthly_avg_placement else '-',
                 str(member.monthly_first_place),
@@ -217,27 +234,27 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
     # Create table
     table = Table(data, colWidths=[
         0.5 * inch,  # Rank
-        1.8 * inch,  # Player
-        0.7 * inch,  # Total
-        0.6 * inch,  # Games
-        0.8 * inch,  # Avg/Game
-        0.7 * inch,  # Avg Plc
+        1.7 * inch,  # Player
+        0.7 * inch,  # Games Played
+        0.6 * inch,  # Total Points
+        0.8 * inch,  # Best 5 Consecutive
+        0.7 * inch,  # Average Points
+        0.7 * inch,  # Average Position
         0.4 * inch,  # 1st
         0.4 * inch,  # 2nd
         0.4 * inch,  # 3rd
         0.4 * inch,  # 4th
-        0.6 * inch   # Chombo
+        0.7 * inch   # Chombo
     ])
     
     # Table style
     table.setStyle(TableStyle([
         # Header row
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#595858")),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, 0), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         
         # Data rows
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
