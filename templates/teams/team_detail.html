@@ -78,8 +78,8 @@
                 <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                     <h3 style="margin: 0;">Active Members</h3>
                     <div style="display: flex; border-radius: 4px; overflow: hidden; border: 1px solid #ddd;">
-                        <button id="btn-monthly" style="padding: 3px 14px; font-size: 0.85rem; cursor: pointer; background-color: #3498db; color: white; border: none; font-weight: bold;">Monthly</button>
-                        <button id="btn-yearly" style="padding: 3px 14px; font-size: 0.85rem; cursor: pointer; background-color: #ecf0f1; color: #555; border: none;">Yearly</button>
+                        <button id="btn-monthly" style="padding: 3px 14px; font-size: 0.85rem; cursor: pointer; background-color: #ecf0f1; color: #555; border: none;">Monthly</button>
+                        <button id="btn-yearly" style="padding: 3px 14px; font-size: 0.85rem; cursor: pointer; background-color: #3498db; color: white; border: none; font-weight: bold;">Yearly</button>
                     </div>
                 </div>
                 <div class="standings-actions">
@@ -112,7 +112,7 @@
                 </div>
             </div>
             <!-- Monthly Standings -->
-            <div id="standings-monthly">
+            <div id="standings-monthly" style="display: none;">
             {% if monthly_standings %}
                 <div class="table-responsive">
                 <table id="standingsTableMonthly" style="margin-top: 1rem;">
@@ -184,7 +184,7 @@
             </div>
 
             <!-- Yearly Standings -->
-            <div id="standings-yearly" style="display: none;">
+            <div id="standings-yearly">
             {% if standings %}
                 <div class="table-responsive">
                 <table id="standingsTableYearly" style="margin-top: 1rem;">
