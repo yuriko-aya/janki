@@ -159,7 +159,7 @@
                                 data-chombo="{{ member.monthly_chombo_count }}"
                                 data-bestfive="{% if member.monthly_best_five is not None %}{{ member.monthly_best_five }}{% else %}-9999{% endif %}">
                                 <td class="rank-cell">{{ forloop.counter }}</td>
-                                <td>{{ member.shown_name }}</td>
+                                <td><a href="{% url 'teams:member_detail' slug=team.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;">{{ member.shown_name }}</a></td>
                                 <td style="text-align: right;">{{ member.monthly_games }}</td>
                                 <td style="text-align: right;">{{ member.monthly_total|floatformat:2 }}</td>
                                 <td style="text-align: right;">
@@ -236,7 +236,7 @@
                                 data-fourth="{{ member.yearly_fourth_place }}"
                                 data-chombo="{{ member.yearly_chombo_count }}">
                                 <td class="rank-cell">{{ forloop.counter }}</td>
-                                <td>{{ member.shown_name }}</td>
+                                <td><a href="{% url 'teams:member_detail' slug=team.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;">{{ member.shown_name }}</a></td>
                                 <td style="text-align: right;">{{ member.yearly_games }}</td>
                                 <td style="text-align: right;">{{ member.yearly_total|floatformat:2 }}</td>
                                 <td class="hide-mobile" style="text-align: right;">{{ member.yearly_average|floatformat:2 }}</td>
@@ -273,7 +273,7 @@
                     {% for member in inactive_members %}
                         <li style="padding: 0.75rem 0; border-bottom: 1px solid #eee;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>{{ member.name }}</span>
+                                <a href="{% url 'teams:member_detail' slug=team.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;">{{ member.shown_name }}</a>
                                 <span style="color: #999; font-size: 0.85rem; font-style: italic;">No games played</span>
                             </div>
                         </li>

@@ -24,6 +24,7 @@ urlpatterns = [
     path('<slug:slug>/authorization/<str:access_code>/', views.AuthorizationView.as_view(), name='authorization'),
     path('<slug:slug>/members/', views.MemberListView.as_view(), name='member_list'),
     path('<slug:slug>/members/add/', views.MemberCreateView.as_view(), name='member_create'),
+    path('<slug:slug>/member/<int:pk>/', views.MemberDetailView.as_view(), name='member_detail'),
     path('<slug:slug>/admins/', views.TeamAdminListView.as_view(), name='admin_list'),
     path('<slug:slug>/admins/add/', views.AddTeamAdminView.as_view(), name='admin_add'),
 ]

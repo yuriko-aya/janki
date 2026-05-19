@@ -896,3 +896,87 @@ def get_available_years(team):
     
     return list(all_scores)
 
+
+def get_member_game_history(member):
+    """
+    Returns per-game history and monthly breakdown for a member.
+    Only includes complete, non-archived sessions (exactly 4 scores).
+
+    Args:
+        member: The Member object
+
+    Returns:
+        dict with:
+          - game_history: list of dicts sorted chronologically, each containing:
+              session_id, date, raw_score, placement, calculated, chombo
+          - monthly_breakdown: list of monthly aggregate dicts sorted chronologically,
+              each containing: year, month, total, games, average
+    """
+    from django.db.models import Count
+
+    team = member.team
+
+    member_scores = (
+        RawScore.objects
+        .filter(member=member, archived=False)
+        .order_by('session_date', 'created_at')
+    )
+
+    if not member_scores.exists():
+        return {'game_history': [], 'monthly_breakdown': []}
+
+    # Single extra query: find which of the member's sessions are complete (4 non-archived scores)
+    session_ids = member_scores.values_list('session_id', flat=True)
+    complete_session_ids = set(
+        RawScore.objects
+        .filter(member__team=team, session_id__in=session_ids, archived=False)
+        .values('session_id')
+        .annotate(cnt=Count('id'))
+        .filter(cnt=4)
+        .values_list('session_id', flat=True)
+    )
+
+    game_history = []
+    monthly_stats = {}
+
+    for rs in member_scores:
+        if rs.session_id not in complete_session_ids:
+            continue
+        if rs.placement is None:
+            continue
+
+        uma = calculate_uma_for_placement(rs.placement, team)
+        calculated = calculate_session_score(rs.score, rs.placement, uma, team, rs.chombo)
+        game_date = rs.session_date or rs.created_at.date()
+
+        game_history.append({
+            'session_id': rs.session_id,
+            'date': game_date,
+            'raw_score': rs.score,
+            'placement': rs.placement,
+            'calculated': calculated,
+            'chombo': rs.chombo,
+        })
+
+        key = (game_date.year, game_date.month)
+        if key not in monthly_stats:
+            monthly_stats[key] = {'total': 0.0, 'games': 0}
+        monthly_stats[key]['total'] += calculated
+        monthly_stats[key]['games'] += 1
+
+    monthly_breakdown = [
+        {
+            'year': year,
+            'month': month,
+            'total': v['total'],
+            'games': v['games'],
+            'average': v['total'] / v['games'] if v['games'] else 0.0,
+        }
+        for (year, month), v in sorted(monthly_stats.items())
+    ]
+
+    return {
+        'game_history': game_history,
+        'monthly_breakdown': monthly_breakdown,
+    }
+
