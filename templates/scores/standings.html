@@ -118,7 +118,7 @@
                             </span>
                         </td>
                         <td>
-                            {{ member.shown_name }}
+                            <a href="{% url 'teams:member_detail' slug=team.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;">{{ member.shown_name }}</a>
                         </td>
                         <td style="text-align: right;">
                             {{ member.monthly_games }}
