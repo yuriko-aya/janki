@@ -299,13 +299,7 @@
             }
         }
     });
-}());
-</script>
-{% endif %}
-<script>
-{% if chart_dates_json %}
-(function () {
-    var dates = {{ chart_dates_json|safe }};
+
     var placements = {{ chart_placements_json|safe }};
     var placementColors = placements.map(function(p) {
         if (p <= 1) return '#27ae60';
@@ -328,8 +322,7 @@
                 pointBackgroundColor: placementColors,
                 pointBorderColor: placementColors,
                 fill: true,
-                tension: 0.2,
-                stepped: false
+                tension: 0.2
             }]
         },
         options: {
@@ -364,6 +357,7 @@
         }
     });
 }());
+</script>
 {% endif %}
 <script>
 (function () {
