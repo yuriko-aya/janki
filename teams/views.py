@@ -392,6 +392,124 @@ class MemberDetailView(TeamSlugMixin, TeamContextMixin, DetailView):
         context['chart_dates_json'] = json.dumps(chart_dates)
         context['chart_scores_json'] = json.dumps(cumulative_scores)
         context['chart_per_game_json'] = json.dumps(per_game_scores)
+        context['chart_placements_json'] = json.dumps([g['placement'] for g in game_history])
+
+        return context
+
+
+class MemberMonthlyView(TeamSlugMixin, TeamContextMixin, DetailView):
+    """Display monthly stats for a single member (public view - no auth required)."""
+    model = Member
+    template_name = 'teams/member_monthly.html'
+    context_object_name = 'member'
+
+    def get_object(self):
+        return get_object_or_404(Member, pk=self.kwargs['pk'], team=self.team)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        member = self.object
+
+        stats = get_member_game_history(member)
+        game_history = stats['game_history']
+        monthly_breakdown = stats['monthly_breakdown']
+
+        # Determine available months for the selector
+        available_months = [(row['year'], row['month']) for row in monthly_breakdown]
+
+        # Parse requested month/year from query params, default to latest available
+        today = date.today()
+        try:
+            req_year = int(self.request.GET.get('year', 0))
+            req_month = int(self.request.GET.get('month', 0))
+        except (ValueError, TypeError):
+            req_year = req_month = 0
+
+        if req_year and req_month and (req_year, req_month) in available_months:
+            sel_year, sel_month = req_year, req_month
+        elif available_months:
+            sel_year, sel_month = available_months[-1]
+        else:
+            sel_year, sel_month = today.year, today.month
+
+        context['sel_year'] = sel_year
+        context['sel_month'] = sel_month
+        context['available_months'] = available_months
+
+        # Filter game history for selected month
+        month_games = [
+            g for g in game_history
+            if g['date'].year == sel_year and g['date'].month == sel_month
+        ]
+        context['month_games'] = month_games
+
+        # Monthly aggregate stats for selected month
+        if month_games:
+            total = sum(g['calculated'] for g in month_games)
+            games_count = len(month_games)
+            avg = total / games_count
+            placements = [g['placement'] for g in month_games]
+            avg_placement = sum(placements) / len(placements)
+            chombo_total = sum(g['chombo'] for g in month_games)
+
+            best_game = max(month_games, key=lambda g: g['calculated'])
+            worst_game = min(month_games, key=lambda g: g['calculated'])
+
+            from collections import Counter
+            placement_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+            for p in placements:
+                rounded = round(p)
+                if rounded in placement_counts:
+                    placement_counts[rounded] += 1
+
+            context['month_total'] = total
+            context['month_games_count'] = games_count
+            context['month_avg'] = avg
+            context['month_avg_placement'] = avg_placement
+            context['month_chombo'] = chombo_total
+            context['month_best_game'] = best_game
+            context['month_worst_game'] = worst_game
+            context['month_placement_bars'] = [
+                {'label': '1st', 'count': placement_counts[1], 'pct': placement_counts[1] / games_count * 100, 'color': '#27ae60'},
+                {'label': '2nd', 'count': placement_counts[2], 'pct': placement_counts[2] / games_count * 100, 'color': '#3498db'},
+                {'label': '3rd', 'count': placement_counts[3], 'pct': placement_counts[3] / games_count * 100, 'color': '#f39c12'},
+                {'label': '4th', 'count': placement_counts[4], 'pct': placement_counts[4] / games_count * 100, 'color': '#e74c3c'},
+            ]
+
+            # Chart data for selected month
+            per_game_scores = [round(g['calculated'], 2) for g in month_games]
+            running = 0.0
+            cumulative_scores = []
+            for s in per_game_scores:
+                running += s
+                cumulative_scores.append(round(running, 2))
+            chart_dates = [str(g['date']) for g in month_games]
+            context['chart_dates_json'] = json.dumps(chart_dates)
+            context['chart_scores_json'] = json.dumps(cumulative_scores)
+            context['chart_per_game_json'] = json.dumps(per_game_scores)
+            context['chart_placements_json'] = json.dumps(placements)
+        else:
+            context['month_total'] = 0.0
+            context['month_games_count'] = 0
+            context['month_avg'] = 0.0
+            context['month_avg_placement'] = None
+            context['month_chombo'] = 0
+            context['month_best_game'] = None
+            context['month_worst_game'] = None
+            context['month_placement_bars'] = []
+            context['chart_dates_json'] = None
+            context['chart_scores_json'] = None
+            context['chart_per_game_json'] = None
+            context['chart_placements_json'] = None
+
+        # Prev / next month navigation
+        if available_months:
+            idx = available_months.index((sel_year, sel_month)) if (sel_year, sel_month) in available_months else -1
+            context['prev_month'] = available_months[idx - 1] if idx > 0 else None
+            context['next_month'] = available_months[idx + 1] if idx >= 0 and idx < len(available_months) - 1 else None
+        else:
+            context['prev_month'] = None
+            context['next_month'] = None
 
         return context
 
