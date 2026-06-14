@@ -64,7 +64,7 @@ class SessionSubmitView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
         try:
             submit_session_scores(session_id, self.team, score_data, session_date=session_date)
             messages.success(self.request, f"Session {session_id} scores submitted successfully!")
-            return redirect('teams:member_list', slug=self.team.slug)
+            return redirect('scores:session_submit', team_slug=self.team.slug)
         except Exception as e:
             messages.error(self.request, f"Error submitting scores: {str(e)}")
             return self.form_invalid(form)
@@ -121,7 +121,7 @@ class SessionEditView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
         try:
             update_session_scores(session_id, self.team, score_data, session_date=session_date)
             messages.success(self.request, f"Session {session_id} updated successfully!")
-            return redirect('teams:member_list', slug=self.team.slug)
+            return redirect('scores:session_submit', team_slug=self.team.slug)
         except Exception as e:
             messages.error(self.request, f"Error updating scores: {str(e)}")
             return self.form_invalid(form)
