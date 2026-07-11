@@ -63,11 +63,15 @@ class MemberForm(forms.ModelForm):
     
     class Meta:
         model = Member
-        fields = ['name']
+        fields = ['name', 'display_name']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter member name'
+            }),
+            'display_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Leave blank to use name'
             }),
         }
 
