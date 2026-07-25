@@ -157,6 +157,7 @@ EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('SMTP_USERNAME', default='')
 EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('FROM_EMAIL', default='noreply@example.com')
+CONTACT_EMAIL = env('CONTACT_EMAIL', default='admin@sanusi.id')
 
 # Cloudflare Turnstile
 TURNSTILE_SITE_KEY = env('TURNSTILE_SITE_KEY', default='')

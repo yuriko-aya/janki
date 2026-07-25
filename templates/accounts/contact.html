@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Contact - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="margin-top: 40px;">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Contact Us</h2>
+                <p class="text-center text-muted mb-4">Have a question or feedback? Send us a message and we'll get back to you.</p>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.name.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">Email</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.email.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_subject" class="form-label">Subject</label>
+                        {{ form.subject }}
+                        {% if form.subject.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.subject.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_message" class="form-label">Message</label>
+                        {{ form.message }}
+                        {% if form.message.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.message.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+                        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="light"></div>
+                        {{ form.turnstile_token }}
+                        {% if form.turnstile_token.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.turnstile_token.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function() {
+            const tokenInput = document.querySelector('input[name="turnstile_token"]');
+            if (window.turnstile && window.turnstile.getResponse) {
+                tokenInput.value = window.turnstile.getResponse();
+            }
+        });
+    });
+</script>
+{% endblock %}

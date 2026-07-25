@@ -8,4 +8,6 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.RegisterView.as_view(), name='register'),
     path('verify-email/<str:token>/', views.VerifyEmailView.as_view(), name='verify_email'),
-    path('registration-pending/', views.RegistrationPendingView.as_view(), name='registration_pending'),]
+    path('registration-pending/', views.RegistrationPendingView.as_view(), name='registration_pending'),
+    path('contact/', views.ContactView.as_view(), name='contact'),
+]
