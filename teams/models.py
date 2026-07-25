@@ -79,14 +79,14 @@ class Member(models.Model):
 
     class Meta:
         ordering = ['name']
+        unique_together = [['team', 'name']]
+        indexes = [
+            models.Index(fields=['team', 'name']),
+        ]
 
     @property
     def shown_name(self):
         return self.display_name if self.display_name else self.name
-        unique_together = ['team', 'name']
-        indexes = [
-            models.Index(fields=['team', 'name']),
-        ]
 
     def __str__(self):
         return f"{self.name} ({self.team.name})"
@@ -97,5 +97,5 @@ class Member(models.Model):
         """
         try:
             return self.calculated_score.total
-        except:
+        except Exception:
             return 0
