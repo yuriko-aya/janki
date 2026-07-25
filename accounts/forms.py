@@ -136,6 +136,28 @@ class ResendVerificationEmailForm(TurnstileMixin, forms.Form):
         return email
 
 
+class ContactForm(TurnstileMixin, forms.Form):
+    """Contact form with Turnstile protection."""
+    name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Your name'})
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Your email address'})
+    )
+    subject = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Subject'})
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Your message', 'rows': 6})
+    )
+    turnstile_token = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+
 class TeamAdminCreationForm(forms.Form):
     """Form for creating a TeamAdmin with a User."""
     username = forms.CharField(max_length=150)

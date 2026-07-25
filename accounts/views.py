@@ -12,9 +12,9 @@ from django.utils.encoding import force_bytes, force_str
 from django.conf import settings
 from django.http import HttpResponseBadRequest
 
-from accounts.forms import UserRegistrationForm, LoginForm, ResendVerificationEmailForm
+from accounts.forms import UserRegistrationForm, LoginForm, ResendVerificationEmailForm, ContactForm
 from accounts.models import EmailVerificationToken
-from accounts.services import send_verification_email
+from accounts.services import send_verification_email, send_contact_email
 
 
 class RegisterView(FormView):
@@ -128,6 +128,28 @@ class LoginView(FormView):
         else:
             messages.error(self.request, 'Invalid username or password.')
             return self.form_invalid(form)
+
+
+class ContactView(FormView):
+    """Contact form with Turnstile protection."""
+    template_name = 'accounts/contact.html'
+    form_class = ContactForm
+    success_url = reverse_lazy('accounts:contact')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['turnstile_site_key'] = settings.TURNSTILE_SITE_KEY
+        return context
+
+    def form_valid(self, form):
+        send_contact_email(
+            name=form.cleaned_data['name'],
+            email=form.cleaned_data['email'],
+            subject=form.cleaned_data['subject'],
+            message=form.cleaned_data['message'],
+        )
+        messages.success(self.request, 'Your message has been sent. We will get back to you soon.')
+        return super().form_valid(form)
 
 
 def logout_view(request):

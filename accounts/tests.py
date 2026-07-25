@@ -137,3 +137,40 @@ class LoginTestCase(TestCase):
         self.assertIn('_auth_user_id', self.client.session)
         self.client.get(reverse('accounts:logout'))
         self.assertNotIn('_auth_user_id', self.client.session)
+
+
+class ContactTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.contact_url = reverse('accounts:contact')
+
+    def test_contact_page_loads(self):
+        response = self.client.get(self.contact_url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_contact_form_sends_email(self):
+        from unittest.mock import patch
+        with patch('accounts.views.send_contact_email') as mock_send:
+            response = self.client.post(self.contact_url, {
+                'name': 'Test User',
+                'email': 'test@example.com',
+                'subject': 'Hello',
+                'message': 'This is a test message.',
+            })
+            self.assertRedirects(response, self.contact_url)
+            mock_send.assert_called_once_with(
+                name='Test User',
+                email='test@example.com',
+                subject='Hello',
+                message='This is a test message.',
+            )
+
+    def test_contact_form_requires_all_fields(self):
+        response = self.client.post(self.contact_url, {
+            'name': 'Test User',
+            'email': '',
+            'subject': 'Hello',
+            'message': 'This is a test message.',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'email', 'This field is required.')
