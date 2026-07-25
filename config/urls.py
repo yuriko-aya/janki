@@ -38,6 +38,7 @@ urlpatterns = [
     path('teams/', include('teams.urls')),
     path('scores/', include('scores.urls')),
     path('accounts/', include('accounts.urls')),
+    path('accounts/social/', include('allauth.urls')),
     path('bot-info/', BotInfoView.as_view(), name='bot_info'),
     
     # API endpoints

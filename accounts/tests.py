@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -174,3 +174,65 @@ class ContactTestCase(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response.context['form'], 'email', 'This field is required.')
+
+
+class SocialAccountAdapterTestCase(TestCase):
+    def setUp(self):
+        from accounts.adapters import SocialAccountAdapter
+        self.adapter = SocialAccountAdapter()
+
+    def test_save_user_activates_oauth_user(self):
+        from unittest.mock import MagicMock, patch
+        user = User.objects.create_user(
+            username='oauthuser', email='oauth@example.com', password='x', is_active=False
+        )
+        sociallogin = MagicMock()
+        sociallogin.user = user
+
+        with patch(
+            'accounts.adapters.DefaultSocialAccountAdapter.save_user',
+            return_value=user,
+        ):
+            result = self.adapter.save_user(None, sociallogin)
+
+        result.refresh_from_db()
+        self.assertTrue(result.is_active)
+
+    def test_pre_social_login_activates_inactive_user(self):
+        from unittest.mock import MagicMock
+        user = User.objects.create_user(
+            username='inactive', email='inactive@example.com', password='x', is_active=False
+        )
+        EmailVerificationToken.create_for_user(user)
+        sociallogin = MagicMock()
+        sociallogin.user = user
+
+        self.adapter.pre_social_login(None, sociallogin)
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertFalse(EmailVerificationToken.objects.filter(user=user).exists())
+
+
+class SocialLoginTemplateTestCase(TestCase):
+    _test_storages = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
+    @override_settings(
+        STORAGES=_test_storages,
+        SOCIALACCOUNT_PROVIDERS={
+            'google': {
+                'APP': {'client_id': 'test-google-id', 'secret': 'test-secret', 'key': ''},
+            },
+        },
+    )
+    def test_login_page_shows_google_button_when_configured(self):
+        response = self.client.get(reverse('accounts:login'))
+        self.assertContains(response, 'Continue with Google')
+
+    @override_settings(STORAGES=_test_storages, SOCIALACCOUNT_PROVIDERS={})
+    def test_login_page_hides_social_buttons_when_unconfigured(self):
+        response = self.client.get(reverse('accounts:login'))
+        self.assertNotContains(response, 'Continue with Google')
