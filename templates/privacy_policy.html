@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Privacy Policy - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <h1>Privacy Policy</h1>
+    <p class="legal-meta">Last updated: {% now "F j, Y" %}</p>
+
+    <p>
+        Mahjong Score Tracker ("Janki", "we", "us") is a web application for tracking
+        Japanese Mahjong scores across teams and leagues. This policy explains what
+        information we collect and how we use it.
+    </p>
+
+    <h2>Information We Collect</h2>
+    <ul>
+        <li><strong>Account information:</strong> username, email address, and password (if you register with email).</li>
+        <li><strong>OAuth profile data:</strong> if you sign in with Google, Facebook, or X, we receive your name and email address from that provider.</li>
+        <li><strong>Game data:</strong> team memberships, session scores, standings, and related statistics you or your team admins submit.</li>
+        <li><strong>Contact form submissions:</strong> name, email, and message content when you use the contact form.</li>
+        <li><strong>Technical data:</strong> standard server logs (IP address, browser type, pages visited) for security and troubleshooting.</li>
+    </ul>
+
+    <h2>How We Use Your Information</h2>
+    <ul>
+        <li>To create and manage your account</li>
+        <li>To provide score tracking, standings, and team management features</li>
+        <li>To respond to contact form messages</li>
+        <li>To protect the service against abuse (including bot protection via Cloudflare Turnstile)</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>We use the following third-party services:</p>
+    <ul>
+        <li><strong>Google, Facebook, X:</strong> for optional social login (only if you choose to use them)</li>
+        <li><strong>Cloudflare Turnstile:</strong> for bot protection on registration, login, and contact forms</li>
+        <li><strong>Email provider:</strong> to send account verification and contact form emails</li>
+    </ul>
+    <p>
+        Each provider has its own privacy policy governing how they handle your data.
+        We only receive the information necessary to authenticate you and create your account.
+    </p>
+
+    <h2>Data Sharing</h2>
+    <p>
+        We do not sell your personal information. Team standings and session results
+        may be visible to other users of the service as part of the app's public
+        team pages. We do not share your data with third parties except as required
+        to operate the service (see Third-Party Services above) or as required by law.
+    </p>
+
+    <h2>Data Retention</h2>
+    <p>
+        We retain your account and game data for as long as your account is active.
+        You may request deletion of your account by contacting us.
+    </p>
+
+    <h2>Your Rights</h2>
+    <p>You may:</p>
+    <ul>
+        <li>Access and update your account information</li>
+        <li>Request deletion of your account and associated data</li>
+        <li>Withdraw consent for OAuth login by disconnecting the provider and using email login instead</li>
+    </ul>
+
+    <h2>Security</h2>
+    <p>
+        We use industry-standard measures to protect your data, including HTTPS
+        in production and secure password hashing. No method of transmission over
+        the internet is 100% secure.
+    </p>
+
+    <h2>Children</h2>
+    <p>
+        This service is not directed at children under 13. We do not knowingly
+        collect personal information from children.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+        We may update this policy from time to time. Changes will be posted on this
+        page with an updated date.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+        For privacy-related questions, contact us at
+        <a href="mailto:admin@sanusi.id">admin@sanusi.id</a> or via our
+        <a href="{% url 'accounts:contact' %}">contact form</a>.
+    </p>
+</div>
+{% endblock %}

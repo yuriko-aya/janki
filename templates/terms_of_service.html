@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Terms of Service - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <h1>Terms of Service</h1>
+    <p class="legal-meta">Last updated: {% now "F j, Y" %}</p>
+
+    <p>
+        By using Mahjong Score Tracker ("Janki", "the Service"), you agree to these
+        Terms of Service. If you do not agree, please do not use the Service.
+    </p>
+
+    <h2>Description of Service</h2>
+    <p>
+        Janki is a web application for tracking Japanese Mahjong scores across teams,
+        managing members, viewing standings, and exporting results. The Service is
+        provided free of charge.
+    </p>
+
+    <h2>Accounts</h2>
+    <ul>
+        <li>You must provide accurate information when creating an account.</li>
+        <li>You are responsible for maintaining the security of your account credentials.</li>
+        <li>You may sign in using email/password or third-party providers (Google, Facebook, X).</li>
+        <li>Email registrations require verification before the account is activated.</li>
+        <li>You must be at least 13 years old to use the Service.</li>
+    </ul>
+
+    <h2>Acceptable Use</h2>
+    <p>You agree not to:</p>
+    <ul>
+        <li>Use the Service for any unlawful purpose</li>
+        <li>Submit false or misleading score data</li>
+        <li>Attempt to gain unauthorized access to other accounts or team data</li>
+        <li>Abuse, harass, or impersonate other users</li>
+        <li>Interfere with or disrupt the Service (including automated scraping or attacks)</li>
+        <li>Circumvent security measures such as bot protection</li>
+    </ul>
+
+    <h2>Team Data and Content</h2>
+    <p>
+        Team admins are responsible for the accuracy of scores and member data they
+        submit. Standings and session results may be publicly visible depending on
+        team settings. By submitting data, you grant us the right to store and display
+        it as part of the Service.
+    </p>
+
+    <h2>API and Discord Bot</h2>
+    <p>
+        Team admins may authorize API access for integrations such as the Discord bot.
+        You are responsible for securing any API tokens issued to your account.
+    </p>
+
+    <h2>Termination</h2>
+    <p>
+        We may suspend or terminate your account if you violate these terms or if
+        your use poses a risk to the Service or other users. You may stop using the
+        Service at any time and request account deletion by contacting us.
+    </p>
+
+    <h2>Disclaimer of Warranties</h2>
+    <p>
+        The Service is provided "as is" without warranties of any kind. We do not
+        guarantee uninterrupted or error-free operation. Score calculations are
+        provided as-is; verify important results independently.
+    </p>
+
+    <h2>Limitation of Liability</h2>
+    <p>
+        To the fullest extent permitted by law, we are not liable for any indirect,
+        incidental, or consequential damages arising from your use of the Service.
+    </p>
+
+    <h2>Changes to Terms</h2>
+    <p>
+        We may update these terms from time to time. Continued use of the Service
+        after changes are posted constitutes acceptance of the updated terms.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+        Questions about these terms? Contact us at
+        <a href="mailto:admin@sanusi.id">admin@sanusi.id</a> or via our
+        <a href="{% url 'accounts:contact' %}">contact form</a>.
+    </p>
+</div>
+{% endblock %}

@@ -38,6 +38,13 @@
     </main>
 
     <footer style="text-align: center; padding: 2rem 0; color: #666; border-top: 1px solid #ecf0f1; margin-top: 4rem;">
+        <p>
+            <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
+            &middot;
+            <a href="{% url 'terms_of_service' %}">Terms of Service</a>
+            &middot;
+            <a href="{% url 'accounts:contact' %}">Contact</a>
+        </p>
         <p>&copy; {% now "Y" %} Mahjong Score Tracker. All rights reserved.</p>
     </footer>
     
