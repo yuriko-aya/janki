@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
 from datetime import date
 
-from teams.models import Team, Member
+from teams.models import Team, Member, Player
 from accounts.models import TeamAdmin
 from scores.models import RawScore
 
@@ -37,10 +37,11 @@ class APITestCase(TestCase):
         )
         
         # Create members
-        self.member1 = Member.objects.create(team=self.team, name='Player 1')
-        self.member2 = Member.objects.create(team=self.team, name='Player 2')
-        self.member3 = Member.objects.create(team=self.team, name='Player 3')
-        self.member4 = Member.objects.create(team=self.team, name='Player 4')
+        for i in range(1, 5):
+            player = Player.objects.create(name=f'Player {i}')
+            setattr(self, f'member{i}', Member.objects.create(
+                team=self.team, name=f'Player {i}', player=player
+            ))
         
         # Create API token
         self.token = Token.objects.create(user=self.user)

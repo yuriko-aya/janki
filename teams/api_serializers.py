@@ -8,7 +8,8 @@ from teams.models import Member
 class MemberSerializer(serializers.Serializer):
     """Serializer for creating a new member."""
     name = serializers.CharField(max_length=100, required=True)
-    
+    confirm_same_player = serializers.BooleanField(required=False, allow_null=True, default=None)
+
     def validate_name(self, value):
         """Validate that member name is not empty and doesn't already exist in team."""
         if not value or not value.strip():

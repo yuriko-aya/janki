@@ -6,6 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from accounts.models import EmailVerificationToken, PasswordResetToken
+from teams.models import Team, Member, Player
 
 
 class RegistrationTestCase(TestCase):
@@ -342,6 +343,41 @@ class ForgotPasswordTestCase(TestCase):
             'password_confirm': 'anotherpass',
         })
         self.assertRedirects(follow_up, reverse('accounts:forgot_password'))
+
+
+class ProfileViewTestCase(TestCase):
+    _test_storages = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='alice', password='pass')
+        self.team = Team.objects.create(name='Team A', slug='team-a')
+        self.player = Player.objects.create(name='Alice')
+        Member.objects.create(team=self.team, name='Alice', player=self.player)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_profile_claim_player(self):
+        self.client.login(username='alice', password='pass')
+        response = self.client.post(reverse('accounts:profile'), {
+            'action': 'claim',
+            'player_id': self.player.pk,
+        })
+        self.assertRedirects(response, reverse('accounts:profile'))
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.user, self.user)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_profile_shows_linked_player(self):
+        self.player.user = self.user
+        self.player.save()
+        self.client.login(username='alice', password='pass')
+        response = self.client.get(reverse('accounts:profile'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Linked Player')
+        self.assertContains(response, 'View All-Team Stats')
 
 
 class SyncSiteCommandTestCase(TestCase):

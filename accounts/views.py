@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import FormView, View, TemplateView
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -23,6 +24,14 @@ from accounts.forms import (
 from accounts.models import EmailVerificationToken, PasswordResetToken
 from accounts.services import send_verification_email, send_contact_email, send_password_reset_email
 from accounts.allauth_utils import sync_verified_email_address
+from teams.models import Player
+from teams.services import (
+    get_claimable_players_for_user,
+    get_user_linked_player,
+    is_player_claimable_by_user,
+    link_player_to_user,
+    unlink_player_from_user,
+)
 
 
 class RegisterView(FormView):
@@ -231,6 +240,36 @@ class ContactView(FormView):
         )
         messages.success(self.request, 'Your message has been sent. We will get back to you soon.')
         return super().form_valid(form)
+
+
+class ProfileView(LoginRequiredMixin, View):
+    """Self-claim or manage a linked player profile."""
+    template_name = 'accounts/profile.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'linked_player': get_user_linked_player(request.user),
+            'claimable_players': get_claimable_players_for_user(request.user),
+        })
+
+    def post(self, request):
+        action = request.POST.get('action')
+        linked_player = get_user_linked_player(request.user)
+
+        if action == 'claim':
+            player = get_object_or_404(Player, pk=request.POST.get('player_id'))
+            if not is_player_claimable_by_user(player, request.user):
+                messages.error(request, 'You cannot claim that player profile.')
+            else:
+                link_player_to_user(player, request.user)
+                messages.success(request, f"Linked your account to player '{player.name}'.")
+        elif action == 'unlink' and linked_player:
+            unlink_player_from_user(linked_player)
+            messages.success(request, 'Your player profile has been unlinked.')
+        else:
+            messages.error(request, 'Invalid action.')
+
+        return redirect('accounts:profile')
 
 
 def logout_view(request):

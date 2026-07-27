@@ -60,7 +60,17 @@ class TeamForm(forms.ModelForm):
 
 class MemberForm(forms.ModelForm):
     """Form for creating and updating a Team Member."""
-    
+    linked_username = forms.CharField(
+        max_length=150,
+        required=False,
+        label='Link to user account',
+        help_text='Optional. Enter a username to link this member\'s player profile to a user account.',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Username (optional)',
+        }),
+    )
+
     class Meta:
         model = Member
         fields = ['name', 'display_name']
@@ -75,11 +85,40 @@ class MemberForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.player_id and self.instance.player.user_id:
+            self.fields['linked_username'].initial = self.instance.player.user.username
+
     def clean_name(self):
         name = self.cleaned_data.get('name', '')
         if ' ' in name:
             raise forms.ValidationError("Member name cannot contain spaces.")
         return name
+
+    def clean_linked_username(self):
+        username = self.cleaned_data.get('linked_username', '').strip()
+        if not username:
+            return ''
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist as exc:
+            raise forms.ValidationError(f"User '{username}' does not exist.") from exc
+
+        current_player = self.instance.player if self.instance.pk and self.instance.player_id else None
+        existing_player = getattr(user, 'player_profile', None)
+        if existing_player and existing_player != current_player:
+            raise forms.ValidationError(
+                f"User '{username}' is already linked to player '{existing_player.name}'."
+            )
+
+        if current_player and current_player.user_id and current_player.user_id != user.id:
+            raise forms.ValidationError(
+                f"This member's player is already linked to user '{current_player.user.username}'."
+            )
+
+        return username
 
 
 class AddTeamAdminForm(forms.Form):

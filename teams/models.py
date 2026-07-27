@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.utils.text import slugify
 
 
@@ -65,11 +66,42 @@ class Team(models.Model):
         )
 
 
+class Player(models.Model):
+    """
+    A global player identity that can belong to multiple teams via Member records.
+    Optionally linked to a User account for self-service profile access.
+    """
+    name = models.CharField(max_length=100, db_index=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='player_profile',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def teams(self):
+        return Team.objects.filter(members__player=self).distinct()
+
+    def get_team_memberships(self):
+        return self.members.select_related('team', 'calculated_score').order_by('team__name')
+
+
 class Member(models.Model):
     """
     A Member belongs to a Team.
     Each member can submit RawScores for sessions.
     """
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='members', db_index=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members', db_index=True)
     name = models.CharField(max_length=100)
     display_name = models.CharField(max_length=100, blank=True, default='', help_text='If set, shown instead of name in standings tables')
