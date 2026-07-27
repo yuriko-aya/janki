@@ -5,6 +5,7 @@ from teams.models import Team
 
 
 class StaticViewSitemap(Sitemap):
+    protocol = 'https'
     priority = 0.5
     changefreq = 'monthly'
 
@@ -23,6 +24,7 @@ class StaticViewSitemap(Sitemap):
 
 
 class PublicTeamSitemap(Sitemap):
+    protocol = 'https'
     changefreq = 'weekly'
     priority = 0.8
 

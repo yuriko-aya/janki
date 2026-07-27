@@ -85,8 +85,20 @@ class SitemapTestCase(TestCase):
         response = self.client.get(reverse('sitemap'))
         self.assertNotContains(response, '/teams/hidden-team/')
 
+    @override_settings(STORAGES=_test_storages, SITE_DOMAIN='janki.cc')
+    def test_sitemap_uses_configured_domain(self):
+        from django.contrib.sites.models import Site
+        Site.objects.update_or_create(
+            pk=1,
+            defaults={'domain': 'janki.cc', 'name': 'Janki Mahjong Score Tracker'},
+        )
+        response = self.client.get(reverse('sitemap'))
+        self.assertContains(response, 'https://janki.cc/teams/public-team/')
+        self.assertNotContains(response, 'example.com')
+
     @override_settings(STORAGES=_test_storages)
     def test_sitemap_includes_static_pages(self):
         response = self.client.get(reverse('sitemap'))
         self.assertContains(response, reverse('home'))
         self.assertContains(response, reverse('privacy_policy'))
+
