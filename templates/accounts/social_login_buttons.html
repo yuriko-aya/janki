@@ -1,0 +1,18 @@
+{% load socialaccount %}
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+<div class="social-login">
+    {% for provider in socialaccount_providers %}
+        {% if provider.id == 'google' %}
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social btn-social-google">Continue with Google</a>
+        {% elif provider.id == 'facebook' %}
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social btn-social-facebook">Continue with Facebook</a>
+        {% elif provider.id == 'twitter_oauth2' %}
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social btn-social-x">Continue with X</a>
+        {% else %}
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social">Continue with {{ provider.name }}</a>
+        {% endif %}
+    {% endfor %}
+</div>
+<div class="auth-divider"><span>or</span></div>
+{% endif %}
