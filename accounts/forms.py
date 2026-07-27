@@ -104,7 +104,7 @@ class LoginForm(TurnstileMixin, forms.Form):
     """Form for user login with Turnstile protection."""
     username = forms.CharField(
         max_length=150,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username or email'})
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'})
@@ -124,7 +124,7 @@ class ResendVerificationEmailForm(TurnstileMixin, forms.Form):
         widget=forms.HiddenInput(),
         required=False
     )
-    
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         try:
@@ -134,6 +134,38 @@ class ResendVerificationEmailForm(TurnstileMixin, forms.Form):
         except User.DoesNotExist:
             raise ValidationError('No account found with this email address.')
         return email
+
+
+class ForgotPasswordForm(TurnstileMixin, forms.Form):
+    """Request a password reset link by email."""
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email address'})
+    )
+    turnstile_token = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False
+    )
+
+
+class ResetPasswordForm(forms.Form):
+    """Set a new password using a one-time reset link."""
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'New password'}),
+        min_length=8,
+        help_text='Password must be at least 8 characters.',
+    )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm new password'}),
+        label='Confirm Password',
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirm = cleaned_data.get('password_confirm')
+        if password and password_confirm and password != password_confirm:
+            raise ValidationError('Passwords do not match.')
+        return cleaned_data
 
 
 class ContactForm(TurnstileMixin, forms.Form):

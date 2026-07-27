@@ -1,10 +1,11 @@
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core import mail
 from django.utils import timezone
 from datetime import timedelta
 
-from accounts.models import EmailVerificationToken
+from accounts.models import EmailVerificationToken, PasswordResetToken
 
 
 class RegistrationTestCase(TestCase):
@@ -199,19 +200,67 @@ class SocialAccountAdapterTestCase(TestCase):
         self.assertTrue(result.is_active)
 
     def test_pre_social_login_activates_inactive_user(self):
-        from unittest.mock import MagicMock
         user = User.objects.create_user(
             username='inactive', email='inactive@example.com', password='x', is_active=False
         )
         EmailVerificationToken.create_for_user(user)
-        sociallogin = MagicMock()
+
+        class FakeSocialLogin:
+            pass
+
+        sociallogin = FakeSocialLogin()
         sociallogin.user = user
+        sociallogin._did_authenticate_by_email = 'inactive@example.com'
 
         self.adapter.pre_social_login(None, sociallogin)
 
         user.refresh_from_db()
         self.assertTrue(user.is_active)
         self.assertFalse(EmailVerificationToken.objects.filter(user=user).exists())
+
+    def test_pre_social_login_preserves_password_for_verified_user(self):
+        from allauth.socialaccount.internal.flows.email_authentication import wipe_password
+
+        user = User.objects.create_user(
+            username='alice', email='alice@example.com', password='goodpass', is_active=True
+        )
+
+        class FakeSocialLogin:
+            pass
+
+        sociallogin = FakeSocialLogin()
+        sociallogin.user = user
+        sociallogin._did_authenticate_by_email = 'alice@example.com'
+
+        self.adapter.pre_social_login(None, sociallogin)
+        wipe_password(None, user, 'alice@example.com')
+
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('goodpass'))
+
+
+class LoginWithEmailTestCase(TestCase):
+    _test_storages = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
+    def setUp(self):
+        self.client = Client()
+        self.login_url = reverse('accounts:login')
+        self.user = User.objects.create_user(
+            username='alice', email='alice@example.com', password='goodpass', is_active=True
+        )
+
+    @override_settings(STORAGES=_test_storages)
+    def test_login_with_email_and_password(self):
+        response = self.client.post(self.login_url, {
+            'username': 'alice@example.com',
+            'password': 'goodpass',
+            'turnstile_token': 'test-token',
+        })
+        self.assertRedirects(response, reverse('teams:team_list'))
+        self.assertIn('_auth_user_id', self.client.session)
 
 
 class SocialLoginTemplateTestCase(TestCase):
@@ -236,3 +285,61 @@ class SocialLoginTemplateTestCase(TestCase):
     def test_login_page_hides_social_buttons_when_unconfigured(self):
         response = self.client.get(reverse('accounts:login'))
         self.assertNotContains(response, 'Continue with Google')
+
+
+class ForgotPasswordTestCase(TestCase):
+    _test_storages = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
+    def setUp(self):
+        self.client = Client()
+        self.forgot_url = reverse('accounts:forgot_password')
+        self.user = User.objects.create_user(
+            username='alice', email='alice@example.com', password='oldpass', is_active=True
+        )
+
+    @override_settings(STORAGES=_test_storages)
+    def test_forgot_password_shows_same_message_for_unknown_email(self):
+        with self.settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend'):
+            response = self.client.post(self.forgot_url, {
+                'email': 'missing@example.com',
+                'turnstile_token': 'test-token',
+            })
+        self.assertRedirects(response, reverse('accounts:forgot_password_done'))
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_forgot_password_sends_email_for_existing_user(self):
+        from django.core import mail
+        with self.settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend'):
+            response = self.client.post(self.forgot_url, {
+                'email': 'alice@example.com',
+                'turnstile_token': 'test-token',
+            })
+        self.assertRedirects(response, reverse('accounts:forgot_password_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('alice@example.com', mail.outbox[0].to)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_reset_password_updates_password_and_invalidates_token(self):
+        token = PasswordResetToken.create_for_user(self.user)
+        reset_url = reverse('accounts:reset_password', kwargs={'token': token.token})
+
+        response = self.client.post(reset_url, {
+            'password': 'newpass123',
+            'password_confirm': 'newpass123',
+        })
+        self.assertRedirects(response, reverse('accounts:login'))
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('newpass123'))
+        self.assertFalse(PasswordResetToken.objects.filter(user=self.user).exists())
+
+        follow_up = self.client.post(reset_url, {
+            'password': 'anotherpass',
+            'password_confirm': 'anotherpass',
+        })
+        self.assertRedirects(follow_up, reverse('accounts:forgot_password'))
+
