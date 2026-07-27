@@ -888,3 +888,86 @@ footer a:hover {
     text-decoration: underline;
 }
 
+/* Home page */
+.home-hero {
+    max-width: 760px;
+    margin: 2rem auto 3rem;
+    text-align: center;
+}
+
+.home-hero h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.home-tagline {
+    font-size: 1.15rem;
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+.home-description {
+    color: #666;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+}
+
+.home-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.home-features {
+    max-width: 960px;
+    margin: 0 auto 3rem;
+}
+
+.home-features h2 {
+    text-align: center;
+    font-size: 1.35rem;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+.home-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.home-feature-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.home-feature-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.home-feature-card p {
+    color: #666;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.home-links {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.home-links a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.home-links a:hover {
+    text-decoration: underline;
+}
+

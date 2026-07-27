@@ -89,6 +89,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context_processors.site_settings',
             ],
         },
     },
@@ -164,6 +165,12 @@ STORAGES = {
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+APP_NAME = 'Janki Mahjong Score Tracker'
+
+# Google Search Console domain verification (optional meta tag content value)
+GOOGLE_SITE_VERIFICATION = env('GOOGLE_SITE_VERIFICATION', default='')
+
 # Email Configuration
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = env('SMTP_SERVER', default='localhost')
@@ -224,6 +231,7 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     'https://localhost',
     'https://127.0.0.1',
     'https://janki.sanusi.id',
+    'https://janki.cc',
     'http://localhost',
     'http://127.0.0.1',
 ])
