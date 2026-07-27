@@ -15,7 +15,11 @@ from cryptography.fernet import Fernet, InvalidToken
 from teams.models import Team, Member, Player
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
-from teams.services import apply_member_user_link
+from teams.services import (
+    apply_member_user_link,
+    find_members_with_name_elsewhere,
+    resolve_player_for_web_new_member,
+)
 from accounts.models import TeamAdmin
 from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year, get_member_game_history, get_player_game_history
 from datetime import date
@@ -126,17 +130,42 @@ class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
         if not form.is_valid():
             return self.form_invalid(form)
 
+        name = form.cleaned_data['name']
+        confirm = request.POST.get('confirm_same_player')
+        player, needs_confirmation, existing_teams, rejected = resolve_player_for_web_new_member(
+            name,
+            self.team,
+            confirm_same_player=None if confirm is None else confirm == 'yes',
+        )
+
+        if needs_confirmation:
+            return render(request, self.template_name, {
+                'form': form,
+                'team': self.team,
+                'show_duplicate_warning': True,
+                'existing_teams': existing_teams,
+            })
+
+        if rejected:
+            teams_list = ', '.join(existing_teams)
+            form.add_error(
+                'name',
+                f"This name is already used in other teams ({teams_list}). "
+                "Please choose a different name.",
+            )
+            return self.form_invalid(form)
+
         member = form.save(commit=False)
         member.team = self.team
-        member.player = Player.objects.create(name=member.name)
+        member.player = player
         member.save()
         try:
             apply_member_user_link(member, form.cleaned_data.get('linked_username', ''))
         except ValidationError as exc:
-            player = member.player
+            player_to_cleanup = member.player
             member.delete()
-            if player.members.count() == 0:
-                player.delete()
+            if player_to_cleanup.members.count() == 0:
+                player_to_cleanup.delete()
             form.add_error('linked_username', exc.messages[0] if exc.messages else str(exc))
             return self.form_invalid(form)
         messages.success(request, f"Member '{member.name}' added successfully.")
@@ -168,6 +197,34 @@ class MemberUpdateView(LoginRequiredMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+        member = self.get_object()
+        name = form.cleaned_data['name']
+        confirm = self.request.POST.get('confirm_same_player')
+
+        if name != member.name:
+            player, needs_confirmation, existing_teams, rejected = resolve_player_for_web_new_member(
+                name,
+                member.team,
+                confirm_same_player=None if confirm is None else confirm == 'yes',
+            )
+            if needs_confirmation:
+                return render(self.request, self.template_name, {
+                    'form': form,
+                    'team': member.team,
+                    'show_duplicate_warning': True,
+                    'existing_teams': existing_teams,
+                })
+            if rejected:
+                teams_list = ', '.join(existing_teams)
+                form.add_error(
+                    'name',
+                    f"This name is already used in other teams ({teams_list}). "
+                    "Please choose a different name.",
+                )
+                return self.form_invalid(form)
+            if find_members_with_name_elsewhere(name, member.team).exists():
+                member.player = player
+
         member = form.save()
         try:
             apply_member_user_link(member, form.cleaned_data.get('linked_username', ''))
