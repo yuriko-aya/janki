@@ -189,6 +189,7 @@ TURNSTILE_SECRET_KEY = env('TURNSTILE_SECRET_KEY', default='')
 
 # Account activation settings
 ACCOUNT_ACTIVATION_TIMEOUT_DAYS = 7
+PASSWORD_RESET_TIMEOUT_HOURS = env.int('PASSWORD_RESET_TIMEOUT_HOURS', default=1)
 
 # django-allauth (local signup uses custom views; OAuth via social accounts)
 ACCOUNT_EMAIL_VERIFICATION = 'none'

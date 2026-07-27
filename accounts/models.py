@@ -64,3 +64,35 @@ class EmailVerificationToken(models.Model):
             token=EmailVerificationToken.generate_token()
         )
         return token
+
+
+class PasswordResetToken(models.Model):
+    """
+    One-time token for password reset requests.
+    Tokens expire after PASSWORD_RESET_TIMEOUT_HOURS.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='password_reset_token')
+    token = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Password Reset Token'
+        verbose_name_plural = 'Password Reset Tokens'
+
+    def __str__(self):
+        return f"Password reset for {self.user.username}"
+
+    @property
+    def is_expired(self):
+        from django.conf import settings
+        timeout_hours = getattr(settings, 'PASSWORD_RESET_TIMEOUT_HOURS', 1)
+        expiry_date = self.created_at + timedelta(hours=timeout_hours)
+        return timezone.now() > expiry_date
+
+    @staticmethod
+    def create_for_user(user):
+        PasswordResetToken.objects.filter(user=user).delete()
+        return PasswordResetToken.objects.create(
+            user=user,
+            token=EmailVerificationToken.generate_token(),
+        )
