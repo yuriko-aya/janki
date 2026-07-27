@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 
 from teams.models import Team, Member, Player
-from teams.services import resolve_player_for_api_new_member, validate_web_member_name
+from teams.services import resolve_player_for_api_new_member, resolve_player_for_web_new_member
 from accounts.models import TeamAdmin
 
 
@@ -32,13 +32,28 @@ class PlayerModelTestCase(TestCase):
         self.assertEqual(player.name, 'Bob')
         self.assertNotEqual(player, self.player)
 
-    def test_validate_web_member_name_rejects_duplicate(self):
-        with self.assertRaises(ValidationError):
-            validate_web_member_name('Alice', self.team_b)
+    def test_resolve_player_for_web_needs_confirmation(self):
+        player, needs_confirmation, teams, rejected = resolve_player_for_web_new_member('Alice', self.team_b)
+        self.assertTrue(needs_confirmation)
+        self.assertIsNone(player)
+        self.assertFalse(rejected)
+        self.assertEqual(teams, ['Team A'])
 
-    def test_validate_web_member_name_allows_unchanged_on_edit(self):
-        member_b = Member.objects.create(team=self.team_b, name='Alice', player=self.player)
-        validate_web_member_name('Alice', self.team_b, member=member_b)
+    def test_resolve_player_for_web_confirms_same(self):
+        player, needs_confirmation, teams, rejected = resolve_player_for_web_new_member(
+            'Alice', self.team_b, confirm_same_player=True
+        )
+        self.assertFalse(needs_confirmation)
+        self.assertFalse(rejected)
+        self.assertEqual(player, self.player)
+
+    def test_resolve_player_for_web_rejects_different(self):
+        player, needs_confirmation, teams, rejected = resolve_player_for_web_new_member(
+            'Alice', self.team_b, confirm_same_player=False
+        )
+        self.assertFalse(needs_confirmation)
+        self.assertTrue(rejected)
+        self.assertIsNone(player)
 
 
 class MemberCreateViewTestCase(TestCase):
@@ -54,13 +69,41 @@ class MemberCreateViewTestCase(TestCase):
         Member.objects.create(team=self.team_a, name='Alice', player=player)
 
     @override_settings(STORAGES=_test_storages)
-    def test_create_member_rejects_duplicate_name(self):
+    def test_create_member_shows_duplicate_warning(self):
         self.client.login(username='admin', password='pass')
         url = reverse('teams:member_create', kwargs={'slug': self.team_b.slug})
         response = self.client.post(url, {'name': 'Alice', 'display_name': ''})
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['show_duplicate_warning'])
+        self.assertEqual(response.context['existing_teams'], ['Team A'])
         self.assertFalse(Member.objects.filter(team=self.team_b, name='Alice').exists())
-        self.assertContains(response, 'already used in other teams')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_create_member_confirm_same_player(self):
+        self.client.login(username='admin', password='pass')
+        url = reverse('teams:member_create', kwargs={'slug': self.team_b.slug})
+        response = self.client.post(url, {
+            'name': 'Alice',
+            'display_name': '',
+            'confirm_same_player': 'yes',
+        })
+        self.assertEqual(response.status_code, 302)
+        member = Member.objects.get(team=self.team_b, name='Alice')
+        member_a = Member.objects.get(team=self.team_a, name='Alice')
+        self.assertEqual(member.player, member_a.player)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_create_member_confirm_different_requires_new_name(self):
+        self.client.login(username='admin', password='pass')
+        url = reverse('teams:member_create', kwargs={'slug': self.team_b.slug})
+        response = self.client.post(url, {
+            'name': 'Alice',
+            'display_name': '',
+            'confirm_same_player': 'no',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Member.objects.filter(team=self.team_b, name='Alice').exists())
+        self.assertContains(response, 'Please choose a different name')
 
 
 class PlayerDetailViewTestCase(TestCase):

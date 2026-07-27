@@ -32,20 +32,25 @@ def resolve_player_for_api_new_member(name, team):
     return Player.objects.create(name=name)
 
 
-def validate_web_member_name(name, team, member=None):
+def resolve_player_for_web_new_member(name, team, confirm_same_player=None):
     """
-    Reject member names already used on other teams (web UI must use a unique name).
-    Allows keeping the current name when editing a member created via the API.
-    """
-    if member and member.name == name:
-        return
+    Resolve player for web member creation/update with confirmation.
 
-    if find_members_with_name_elsewhere(name, team).exists():
-        teams = existing_team_names_for_member(name, team)
-        raise ValidationError(
-            f"This name is already used in other teams ({', '.join(teams)}). "
-            "Please choose a different name."
-        )
+    Returns:
+        (player, needs_confirmation, existing_teams, rejected)
+        - needs_confirmation: prompt the admin to confirm same player
+        - rejected: admin confirmed a different person; must pick another name
+    """
+    existing = find_members_with_name_elsewhere(name, team)
+    if not existing.exists():
+        return Player.objects.create(name=name), False, [], False
+
+    teams = existing_team_names_for_member(name, team)
+    if confirm_same_player is None:
+        return None, True, teams, False
+    if confirm_same_player:
+        return existing.first().player, False, teams, False
+    return None, False, teams, True
 
 
 def get_user_linked_player(user):
