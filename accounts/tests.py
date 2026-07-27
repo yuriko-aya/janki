@@ -343,3 +343,19 @@ class ForgotPasswordTestCase(TestCase):
         })
         self.assertRedirects(follow_up, reverse('accounts:forgot_password'))
 
+
+class SyncSiteCommandTestCase(TestCase):
+    def test_sync_site_updates_domain(self):
+        from django.core.management import call_command
+        from django.contrib.sites.models import Site
+        from django.conf import settings
+
+        Site.objects.update_or_create(
+            pk=settings.SITE_ID,
+            defaults={'domain': 'example.com', 'name': 'Old Name'},
+        )
+        call_command('sync_site')
+        site = Site.objects.get(pk=settings.SITE_ID)
+        self.assertEqual(site.domain, settings.SITE_DOMAIN)
+        self.assertEqual(site.name, settings.APP_NAME)
+
