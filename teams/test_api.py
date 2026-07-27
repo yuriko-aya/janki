@@ -83,10 +83,9 @@ class MemberCreateAPITestCase(TestCase):
         self.assertFalse(response.data['success'])
         self.assertIn('name', response.data['errors'])
 
-    def test_create_member_duplicate_name_other_team_returns_warning(self):
-        """Test API returns warning when name exists on another team."""
+    def test_create_member_duplicate_name_other_team_links_player(self):
+        """Test API auto-links to existing player when name exists on another team."""
         other_team = Team.objects.create(name='Other Team', slug='other-team')
-        TeamAdmin.objects.create(user=self.admin_user, team=other_team)
         player = Player.objects.create(name='Shared Name')
         Member.objects.create(team=other_team, name='Shared Name', player=player)
 
@@ -94,23 +93,6 @@ class MemberCreateAPITestCase(TestCase):
         response = self.client.post(
             f'/api/teams/{self.team.slug}/members/',
             {'name': 'Shared Name'},
-            format='json'
-        )
-
-        self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.data['warning'], 'duplicate_name')
-        self.assertIn('Other Team', response.data['teams'])
-
-    def test_create_member_confirm_same_player_via_api(self):
-        """Test API can confirm linking to existing player."""
-        other_team = Team.objects.create(name='Other Team', slug='other-team')
-        player = Player.objects.create(name='Shared Name')
-        Member.objects.create(team=other_team, name='Shared Name', player=player)
-
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.admin_token.key}')
-        response = self.client.post(
-            f'/api/teams/{self.team.slug}/members/',
-            {'name': 'Shared Name', 'confirm_same_player': True},
             format='json'
         )
 
