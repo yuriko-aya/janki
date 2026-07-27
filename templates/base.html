@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Mahjong Score Tracker{% endblock %}</title>
+    <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+    {% block meta_description %}{% endblock %}
+    {% if GOOGLE_SITE_VERIFICATION %}
+    <meta name="google-site-verification" content="{{ GOOGLE_SITE_VERIFICATION }}">
+    {% endif %}
     {% load static %}
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
@@ -12,8 +16,9 @@
 <body>
     <header>
         <nav>
-            <a href="{% url 'teams:team_list' %}"><h1>🀄 Mahjong Score Tracker</h1></a>
+            <a href="{% url 'home' %}"><h1>🀄 {{ APP_NAME }}</h1></a>
             <ul>
+                <li><a href="{% url 'teams:team_list' %}">Teams</a></li>
                 <li><a href="{% url 'accounts:contact' %}">Contact</a></li>
                 <li><a href="/bot-info">Discord Bot</a></li>
                 {% if user.is_authenticated %}
@@ -45,7 +50,7 @@
             &middot;
             <a href="{% url 'accounts:contact' %}">Contact</a>
         </p>
-        <p>&copy; {% now "Y" %} Mahjong Score Tracker. All rights reserved.</p>
+        <p>&copy; {% now "Y" %} {{ APP_NAME }}. All rights reserved.</p>
     </footer>
     
     {% load static %}

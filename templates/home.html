@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ APP_NAME }}{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="Janki Mahjong Score Tracker is a free web app for tracking Japanese Mahjong scores across teams, with standings, session history, CSV/PDF export, and Discord bot integration.">
+{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+    <h1>{{ APP_NAME }}</h1>
+    <p class="home-tagline">
+        A free web application for tracking Japanese Mahjong scores across teams and leagues.
+    </p>
+    <p class="home-description">
+        Janki helps Mahjong groups record session results, calculate standings with proper
+        Japanese scoring rules (Uma, Chombo), and share rankings with players. Team admins
+        can manage members, submit scores, export results, and connect a Discord bot for
+        automated score entry.
+    </p>
+    <div class="home-actions">
+        <a href="{% url 'teams:team_list' %}" class="btn btn-primary">Browse Teams</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'teams:team_create' %}" class="btn btn-secondary">Create Team</a>
+        {% else %}
+            <a href="{% url 'accounts:register' %}" class="btn btn-secondary">Create Account</a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-secondary">Login</a>
+        {% endif %}
+    </div>
+</section>
+
+<section class="home-features">
+    <h2>Features</h2>
+    <div class="home-feature-grid">
+        <div class="home-feature-card">
+            <h3>Team Management</h3>
+            <p>Create teams, add members, and assign multiple admins to manage your league.</p>
+        </div>
+        <div class="home-feature-card">
+            <h3>Japanese Scoring</h3>
+            <p>Automatic Uma placement bonuses, Chombo penalties, and tie handling per session.</p>
+        </div>
+        <div class="home-feature-card">
+            <h3>Standings &amp; Stats</h3>
+            <p>View all-time, monthly, and yearly rankings with per-player game history and charts.</p>
+        </div>
+        <div class="home-feature-card">
+            <h3>Discord Bot</h3>
+            <p>Record scores directly from Discord channels via our integrated bot API.</p>
+        </div>
+        <div class="home-feature-card">
+            <h3>Export</h3>
+            <p>Download standings as CSV or PDF for sharing and record keeping.</p>
+        </div>
+        <div class="home-feature-card">
+            <h3>Social Login</h3>
+            <p>Sign in with Google, Facebook, or X, or register with email and password.</p>
+        </div>
+    </div>
+</section>
+
+<section class="home-links">
+    <p>
+        <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
+        &middot;
+        <a href="{% url 'terms_of_service' %}">Terms of Service</a>
+        &middot;
+        <a href="{% url 'accounts:contact' %}">Contact</a>
+        &middot;
+        <a href="{% url 'bot_info' %}">Discord Bot</a>
+    </p>
+</section>
+{% endblock %}

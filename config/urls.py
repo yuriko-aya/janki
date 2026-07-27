@@ -21,14 +21,13 @@ from django.conf.urls.static import static
 from django.views.static import serve
 from django.views.generic import RedirectView
 from accounts.admin_views import AdminLoginView
-from config.views import BotInfoView, PrivacyPolicyView, TermsOfServiceView
+from config.views import BotInfoView, PrivacyPolicyView, TermsOfServiceView, HomePageView
 
 # Customize admin login
 admin.site.login = AdminLoginView.as_view()
 
 urlpatterns = [
-    # Redirect root to teams list
-    path('', RedirectView.as_view(url='/teams/', permanent=False)),
+    path('', HomePageView.as_view(), name='home'),
     
     # Favicon at root
     path('favicon.ico', RedirectView.as_view(url='/static/favicon.ico', permanent=False)),

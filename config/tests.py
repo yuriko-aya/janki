@@ -25,3 +25,31 @@ class LegalPagesTestCase(TestCase):
         response = self.client.get(reverse('teams:team_list'))
         self.assertContains(response, reverse('privacy_policy'))
         self.assertContains(response, reverse('terms_of_service'))
+
+
+class HomePageTestCase(TestCase):
+    _test_storages = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
+    @override_settings(STORAGES=_test_storages)
+    def test_home_page_loads(self):
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Janki Mahjong Score Tracker')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_home_page_describes_app_purpose(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'tracking Japanese Mahjong scores')
+        self.assertContains(response, 'Uma')
+
+    @override_settings(
+        STORAGES=_test_storages,
+        GOOGLE_SITE_VERIFICATION='test-verification-token',
+    )
+    def test_google_site_verification_meta_tag(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'name="google-site-verification"')
+        self.assertContains(response, 'content="test-verification-token"')
