@@ -21,6 +21,9 @@
             <div class="form-group">
                 {{ field.label_tag }}
                 {{ field }}
+                {% if field.help_text %}
+                    <p style="color: #666; font-size: 0.9rem; margin-top: 0.35rem;">{{ field.help_text }}</p>
+                {% endif %}
                 {% if field.errors %}
                     <div style="color: #e74c3c; margin-top: 0.5rem;">
                         {% for error in field.errors %}
@@ -30,21 +33,6 @@
                 {% endif %}
             </div>
         {% endfor %}
-
-        <div class="form-group">
-            {{ form.linked_username.label_tag }}
-            {{ form.linked_username }}
-            {% if form.linked_username.help_text %}
-                <p style="color: #666; font-size: 0.9rem; margin-top: 0.35rem;">{{ form.linked_username.help_text }}</p>
-            {% endif %}
-            {% if form.linked_username.errors %}
-                <div style="color: #e74c3c; margin-top: 0.5rem;">
-                    {% for error in form.linked_username.errors %}
-                        <p>{{ error }}</p>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
         
         <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
             <button type="submit" class="btn">{% if form.instance.pk %}Update Member{% else %}Add Member{% endif %}</button>
