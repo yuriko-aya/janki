@@ -24,25 +24,28 @@ def existing_team_names_for_member(name, team):
     )
 
 
-def resolve_player_for_new_member(name, team, confirm_same_player=None):
-    """
-    Decide which Player record to use when adding a member.
-
-    Returns:
-        (player, needs_confirmation, existing_teams)
-        - player is None when needs_confirmation is True
-        - confirm_same_player: True = link existing player, False = new player (homonym)
-    """
+def resolve_player_for_api_new_member(name, team):
+    """Link to an existing player when the name exists on another team; otherwise create one."""
     existing = find_members_with_name_elsewhere(name, team)
-    if not existing.exists():
-        return Player.objects.create(name=name), False, []
+    if existing.exists():
+        return existing.first().player
+    return Player.objects.create(name=name)
 
-    teams = existing_team_names_for_member(name, team)
-    if confirm_same_player is None:
-        return None, True, teams
-    if confirm_same_player:
-        return existing.first().player, False, teams
-    return Player.objects.create(name=name), False, teams
+
+def validate_web_member_name(name, team, member=None):
+    """
+    Reject member names already used on other teams (web UI must use a unique name).
+    Allows keeping the current name when editing a member created via the API.
+    """
+    if member and member.name == name:
+        return
+
+    if find_members_with_name_elsewhere(name, team).exists():
+        teams = existing_team_names_for_member(name, team)
+        raise ValidationError(
+            f"This name is already used in other teams ({', '.join(teams)}). "
+            "Please choose a different name."
+        )
 
 
 def get_user_linked_player(user):

@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from teams.models import Team, Member
 from accounts.models import TeamAdmin
 
@@ -86,6 +87,7 @@ class MemberForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.team = kwargs.pop('team', None)
         super().__init__(*args, **kwargs)
         if self.instance.pk and self.instance.player_id and self.instance.player.user_id:
             self.fields['linked_username'].initial = self.instance.player.user.username
@@ -94,6 +96,12 @@ class MemberForm(forms.ModelForm):
         name = self.cleaned_data.get('name', '')
         if ' ' in name:
             raise forms.ValidationError("Member name cannot contain spaces.")
+        if self.team:
+            from teams.services import validate_web_member_name
+            try:
+                validate_web_member_name(name, self.team, member=self.instance if self.instance.pk else None)
+            except ValidationError as exc:
+                raise forms.ValidationError(exc.messages[0] if exc.messages else str(exc)) from exc
         return name
 
     def clean_linked_username(self):

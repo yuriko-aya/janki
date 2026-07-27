@@ -15,7 +15,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from teams.models import Team, Member, Player
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
-from teams.services import resolve_player_for_new_member, apply_member_user_link
+from teams.services import apply_member_user_link
 from accounts.models import TeamAdmin
 from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year, get_member_game_history, get_player_game_history
 from datetime import date
@@ -115,29 +115,20 @@ class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
     form_class = MemberForm
     template_name = 'teams/member_form.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['team'] = self.team
+        return kwargs
+
     def post(self, request, *args, **kwargs):
         self.object = None
         form = self.get_form()
         if not form.is_valid():
             return self.form_invalid(form)
 
-        name = form.cleaned_data['name']
-        confirm = request.POST.get('confirm_same_player')
-        player, needs_confirmation, existing_teams = resolve_player_for_new_member(
-            name, self.team, confirm_same_player=None if confirm is None else confirm == 'yes'
-        )
-
-        if needs_confirmation:
-            return render(request, self.template_name, {
-                'form': form,
-                'team': self.team,
-                'show_duplicate_warning': True,
-                'existing_teams': existing_teams,
-            })
-
         member = form.save(commit=False)
         member.team = self.team
-        member.player = player
+        member.player = Player.objects.create(name=member.name)
         member.save()
         try:
             apply_member_user_link(member, form.cleaned_data.get('linked_username', ''))
@@ -147,7 +138,6 @@ class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
             if player.members.count() == 0:
                 player.delete()
             form.add_error('linked_username', exc.messages[0] if exc.messages else str(exc))
-            return self.form_invalid(form)
             return self.form_invalid(form)
         messages.success(request, f"Member '{member.name}' added successfully.")
         return redirect('teams:member_list', slug=self.team.slug)
@@ -162,9 +152,15 @@ class MemberUpdateView(LoginRequiredMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         member = self.get_object()
         self.team_slug = member.team.slug
+        self.member_team = member.team
         if not member.team.is_admin(request.user):
             raise PermissionDenied("You do not have permission to manage this member.")
         return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['team'] = self.member_team
+        return kwargs
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
