@@ -53,3 +53,40 @@ class HomePageTestCase(TestCase):
         response = self.client.get(reverse('home'))
         self.assertContains(response, 'name="google-site-verification"')
         self.assertContains(response, 'content="test-verification-token"')
+
+
+class SitemapTestCase(TestCase):
+    _test_storages = {
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+
+    @classmethod
+    def setUpTestData(cls):
+        from teams.models import Team
+        cls.public_team = Team.objects.create(name='Public Team', slug='public-team', hidden=False)
+        cls.hidden_team = Team.objects.create(name='Hidden Team', slug='hidden-team', hidden=True)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_sitemap_is_valid_xml(self):
+        response = self.client.get(reverse('sitemap'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/xml')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_sitemap_includes_public_team_pages(self):
+        response = self.client.get(reverse('sitemap'))
+        self.assertContains(response, '/teams/public-team/')
+        self.assertContains(response, '/scores/public-team/standings/')
+        self.assertContains(response, '/scores/public-team/sessions/')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_sitemap_excludes_hidden_teams(self):
+        response = self.client.get(reverse('sitemap'))
+        self.assertNotContains(response, '/teams/hidden-team/')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_sitemap_includes_static_pages(self):
+        response = self.client.get(reverse('sitemap'))
+        self.assertContains(response, reverse('home'))
+        self.assertContains(response, reverse('privacy_policy'))
