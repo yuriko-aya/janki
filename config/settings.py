@@ -61,6 +61,7 @@ INSTALLED_APPS = [
 ]
 
 SITE_ID = 1
+SITE_DOMAIN = env('SITE_DOMAIN', default='janki.cc')
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
