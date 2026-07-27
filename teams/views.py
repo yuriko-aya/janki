@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -12,11 +12,12 @@ import base64
 import json
 from hashlib import sha256
 from cryptography.fernet import Fernet, InvalidToken
-from teams.models import Team, Member
+from teams.models import Team, Member, Player
 from teams.forms import TeamForm, MemberForm, AddTeamAdminForm
 from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
+from teams.services import resolve_player_for_new_member, apply_member_user_link
 from accounts.models import TeamAdmin
-from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year, get_member_game_history
+from scores.services.calculator import get_team_standings, get_inactive_members, get_team_standings_by_month, get_team_standings_by_year, get_member_game_history, get_player_game_history
 from datetime import date
 from scores.export_utils import export_standings_to_csv, export_standings_to_pdf
 
@@ -113,11 +114,42 @@ class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
     model = Member
     form_class = MemberForm
     template_name = 'teams/member_form.html'
-    
-    def form_valid(self, form):
+
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        form = self.get_form()
+        if not form.is_valid():
+            return self.form_invalid(form)
+
+        name = form.cleaned_data['name']
+        confirm = request.POST.get('confirm_same_player')
+        player, needs_confirmation, existing_teams = resolve_player_for_new_member(
+            name, self.team, confirm_same_player=None if confirm is None else confirm == 'yes'
+        )
+
+        if needs_confirmation:
+            return render(request, self.template_name, {
+                'form': form,
+                'team': self.team,
+                'show_duplicate_warning': True,
+                'existing_teams': existing_teams,
+            })
+
         member = form.save(commit=False)
         member.team = self.team
+        member.player = player
         member.save()
+        try:
+            apply_member_user_link(member, form.cleaned_data.get('linked_username', ''))
+        except ValidationError as exc:
+            player = member.player
+            member.delete()
+            if player.members.count() == 0:
+                player.delete()
+            form.add_error('linked_username', exc.messages[0] if exc.messages else str(exc))
+            return self.form_invalid(form)
+            return self.form_invalid(form)
+        messages.success(request, f"Member '{member.name}' added successfully.")
         return redirect('teams:member_list', slug=self.team.slug)
 
 
@@ -138,6 +170,16 @@ class MemberUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['team'] = self.get_object().team
         return context
+
+    def form_valid(self, form):
+        member = form.save()
+        try:
+            apply_member_user_link(member, form.cleaned_data.get('linked_username', ''))
+        except ValidationError as exc:
+            form.add_error('linked_username', exc.messages[0] if exc.messages else str(exc))
+            return self.form_invalid(form)
+        messages.success(self.request, f"Member '{member.name}' updated successfully.")
+        return redirect(self.get_success_url())
     
     def get_success_url(self):
         return reverse_lazy('teams:member_list', kwargs={'slug': self.team_slug})
@@ -382,6 +424,62 @@ class MemberDetailView(TeamSlugMixin, TeamContextMixin, DetailView):
             context['placement_bars'] = []
 
         # Chart data: cumulative score and per-game score over time
+        per_game_scores = [round(g['calculated'], 2) for g in game_history]
+        cumulative_scores = []
+        running = 0.0
+        for score in per_game_scores:
+            running += score
+            cumulative_scores.append(round(running, 2))
+        chart_dates = [str(g['date']) for g in game_history]
+        context['chart_dates_json'] = json.dumps(chart_dates)
+        context['chart_scores_json'] = json.dumps(cumulative_scores)
+        context['chart_per_game_json'] = json.dumps(per_game_scores)
+        context['chart_placements_json'] = json.dumps([g['placement'] for g in game_history])
+
+        context['player'] = member.player
+        context['player_team_count'] = member.player.members.values('team').distinct().count()
+
+        return context
+
+
+class PlayerDetailView(DetailView):
+    """Display combined stats for a player across all teams (public view)."""
+    model = Player
+    template_name = 'teams/player_detail.html'
+    context_object_name = 'player'
+
+    def get_context_data(self, **kwargs):
+        from django.core.paginator import Paginator
+        context = super().get_context_data(**kwargs)
+        player = self.object
+
+        stats = get_player_game_history(player)
+        game_history = stats['game_history']
+        summary = stats['summary']
+        context['monthly_breakdown'] = stats['monthly_breakdown']
+        context['team_summaries'] = stats['team_summaries']
+        context['summary'] = summary
+
+        if game_history:
+            context['best_game'] = max(game_history, key=lambda g: g['calculated'])
+            context['worst_game'] = min(game_history, key=lambda g: g['calculated'])
+
+        paginator = Paginator(list(reversed(game_history)), 20)
+        page_obj = paginator.get_page(self.request.GET.get('page', 1))
+        context['game_history'] = game_history
+        context['page_obj'] = page_obj
+
+        games = summary['games_played']
+        if games > 0:
+            context['placement_bars'] = [
+                {'label': '1st', 'count': summary['first_place_count'], 'pct': summary['first_place_count'] / games * 100, 'color': '#27ae60'},
+                {'label': '2nd', 'count': summary['second_place_count'], 'pct': summary['second_place_count'] / games * 100, 'color': '#3498db'},
+                {'label': '3rd', 'count': summary['third_place_count'], 'pct': summary['third_place_count'] / games * 100, 'color': '#f39c12'},
+                {'label': '4th', 'count': summary['fourth_place_count'], 'pct': summary['fourth_place_count'] / games * 100, 'color': '#e74c3c'},
+            ]
+        else:
+            context['placement_bars'] = []
+
         per_game_scores = [round(g['calculated'], 2) for g in game_history]
         cumulative_scores = []
         running = 0.0

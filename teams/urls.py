@@ -13,6 +13,7 @@ urlpatterns = [
     # Admin views - Member management (must come before slug pattern)
     path('member/<int:pk>/edit/', views.MemberUpdateView.as_view(), name='member_update'),
     path('member/<int:pk>/delete/', views.MemberDeleteView.as_view(), name='member_delete'),
+    path('players/<int:pk>/', views.PlayerDetailView.as_view(), name='player_detail'),
     
     # Admin views - Team Admin management (must come before slug pattern)
     path('admin/<int:pk>/remove/', views.RemoveTeamAdminView.as_view(), name='admin_remove'),

@@ -12,6 +12,9 @@
         <p style="color: #666; margin-top: 0.25rem;">Member since {{ member.join_date|date:"M d, Y" }}</p>
     </div>
     <div class="team-header-actions">
+        <a href="{% url 'teams:player_detail' pk=player.pk %}" class="btn" style="background-color: #9b59b6; color: white;">
+            {% if player_team_count > 1 %}All Teams Stats{% else %}Player Profile{% endif %}
+        </a>
         <a href="{% url 'teams:member_monthly' slug=team.slug pk=member.pk %}" class="btn" style="background-color: #3498db; color: white;">Monthly Stats</a>
         <a href="{% url 'teams:team_detail' slug=team.slug %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Team</a>
     </div>

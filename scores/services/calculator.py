@@ -910,3 +910,85 @@ def get_member_game_history(member):
         'monthly_breakdown': monthly_breakdown,
     }
 
+
+def get_player_game_history(player):
+    """
+    Returns combined per-game history and monthly breakdown across all team
+    memberships for a player.
+    """
+    members = player.members.select_related('team').all()
+    combined_history = []
+    monthly_stats = {}
+    team_summaries = []
+
+    total_score = 0.0
+    games_played = 0
+    chombo_total = 0
+    placement_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+    placements = []
+
+    for member in members:
+        stats = get_member_game_history(member)
+        cs = getattr(member, 'calculated_score', None)
+        team_summaries.append({
+            'member': member,
+            'team': member.team,
+            'games_played': cs.games_played if cs else 0,
+            'total': cs.total if cs else 0.0,
+            'average_per_game': cs.average_per_game if cs else 0.0,
+        })
+
+        for game in stats['game_history']:
+            combined_history.append({
+                **game,
+                'team_name': member.team.name,
+                'team_slug': member.team.slug,
+                'member_pk': member.pk,
+                'member_shown_name': member.shown_name if hasattr(member, 'shown_name') else member.name,
+            })
+
+    combined_history.sort(key=lambda g: (g['date'], g['session_id']))
+
+    for game in combined_history:
+        total_score += game['calculated']
+        games_played += 1
+        placements.append(game['placement'])
+        chombo_total += game['chombo']
+        placement_rounded = round(game['placement'])
+        if placement_rounded in placement_counts:
+            placement_counts[placement_rounded] += 1
+
+        key = (game['date'].year, game['date'].month)
+        if key not in monthly_stats:
+            monthly_stats[key] = {'total': 0.0, 'games': 0}
+        monthly_stats[key]['total'] += game['calculated']
+        monthly_stats[key]['games'] += 1
+
+    monthly_breakdown = [
+        {
+            'year': year,
+            'month': month,
+            'total': v['total'],
+            'games': v['games'],
+            'average': v['total'] / v['games'] if v['games'] else 0.0,
+        }
+        for (year, month), v in sorted(monthly_stats.items())
+    ]
+
+    return {
+        'game_history': combined_history,
+        'monthly_breakdown': monthly_breakdown,
+        'team_summaries': sorted(team_summaries, key=lambda s: s['team'].name),
+        'summary': {
+            'total': total_score,
+            'games_played': games_played,
+            'average_per_game': total_score / games_played if games_played else 0.0,
+            'average_placement': sum(placements) / len(placements) if placements else 0.0,
+            'chombo_count': chombo_total,
+            'first_place_count': placement_counts[1],
+            'second_place_count': placement_counts[2],
+            'third_place_count': placement_counts[3],
+            'fourth_place_count': placement_counts[4],
+        },
+    }
+

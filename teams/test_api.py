@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from drf_multitokenauth.models import MultiToken
 
-from teams.models import Team, Member
+from teams.models import Team, Member, Player
 from accounts.models import TeamAdmin
 
 
@@ -68,8 +68,8 @@ class MemberCreateAPITestCase(TestCase):
     
     def test_create_member_duplicate_name(self):
         """Test creating a member with duplicate name fails."""
-        # Create existing member
-        Member.objects.create(team=self.team, name='Existing Player')
+        player = Player.objects.create(name='Existing Player')
+        Member.objects.create(team=self.team, name='Existing Player', player=player)
         
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.admin_token.key}')
         
@@ -82,6 +82,41 @@ class MemberCreateAPITestCase(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(response.data['success'])
         self.assertIn('name', response.data['errors'])
+
+    def test_create_member_duplicate_name_other_team_returns_warning(self):
+        """Test API returns warning when name exists on another team."""
+        other_team = Team.objects.create(name='Other Team', slug='other-team')
+        TeamAdmin.objects.create(user=self.admin_user, team=other_team)
+        player = Player.objects.create(name='Shared Name')
+        Member.objects.create(team=other_team, name='Shared Name', player=player)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.admin_token.key}')
+        response = self.client.post(
+            f'/api/teams/{self.team.slug}/members/',
+            {'name': 'Shared Name'},
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['warning'], 'duplicate_name')
+        self.assertIn('Other Team', response.data['teams'])
+
+    def test_create_member_confirm_same_player_via_api(self):
+        """Test API can confirm linking to existing player."""
+        other_team = Team.objects.create(name='Other Team', slug='other-team')
+        player = Player.objects.create(name='Shared Name')
+        Member.objects.create(team=other_team, name='Shared Name', player=player)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.admin_token.key}')
+        response = self.client.post(
+            f'/api/teams/{self.team.slug}/members/',
+            {'name': 'Shared Name', 'confirm_same_player': True},
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, 201)
+        member = Member.objects.get(team=self.team, name='Shared Name')
+        self.assertEqual(member.player, player)
     
     def test_create_member_empty_name(self):
         """Test creating a member with empty name fails."""

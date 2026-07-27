@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 
 from teams.models import Team, Member
 from teams.api_serializers import MemberSerializer
+from teams.services import resolve_player_for_new_member
 from scores.authentication import BearerMultiTokenAuthentication
 
 
@@ -71,11 +72,30 @@ class MemberCreateAPIView(APIView):
                 'success': False,
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        name = serializer.validated_data['name']
+        confirm = serializer.validated_data.get('confirm_same_player')
+        player, needs_confirmation, existing_teams = resolve_player_for_new_member(
+            name, team, confirm_same_player=confirm
+        )
+
+        if needs_confirmation:
+            teams_list = ', '.join(existing_teams)
+            return Response({
+                'success': False,
+                'warning': 'duplicate_name',
+                'message': (
+                    f"This member already exists in these teams: {teams_list}. "
+                    "Are you sure it's the same player?"
+                ),
+                'teams': existing_teams,
+            }, status=status.HTTP_409_CONFLICT)
+
         # Create the member
         member = Member.objects.create(
             team=team,
-            name=serializer.validated_data['name']
+            name=name,
+            player=player,
         )
         
         return Response({

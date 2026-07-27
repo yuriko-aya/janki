@@ -13,4 +13,5 @@ urlpatterns = [
     path('verify-email/<str:token>/', views.VerifyEmailView.as_view(), name='verify_email'),
     path('registration-pending/', views.RegistrationPendingView.as_view(), name='registration_pending'),
     path('contact/', views.ContactView.as_view(), name='contact'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
 ]

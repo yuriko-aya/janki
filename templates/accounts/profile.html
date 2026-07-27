@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Mahjong Score Tracker{% endblock %}
+
+{% block content %}
+<h1>My Profile</h1>
+
+<div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 700px; margin-top: 2rem;">
+    <p style="color: #666; margin-top: 0;">Account: <strong>{{ user.username }}</strong></p>
+
+    {% if linked_player %}
+        <div style="padding: 1rem; background-color: #f0faf5; border-left: 4px solid #27ae60; border-radius: 0 4px 4px 0; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Linked Player</div>
+            <div style="font-size: 1.25rem; font-weight: bold; color: #2c3e50;">{{ linked_player.name }}</div>
+            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <a href="{% url 'teams:player_detail' pk=linked_player.pk %}" class="btn">View All-Team Stats</a>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="unlink">
+                    <button type="submit" class="btn" style="background-color: #95a5a6;">Unlink Profile</button>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <p style="color: #555; margin-bottom: 1.5rem;">
+            Link your account to a player profile to see combined stats across all your teams.
+        </p>
+
+        {% if claimable_players %}
+            <h3 style="margin: 0 0 1rem 0;">Claim a Player Profile</h3>
+            <p style="color: #666; font-size: 0.95rem; margin-bottom: 1rem;">
+                These player profiles match your username. Confirm if one is yours:
+            </p>
+
+            {% for player in claimable_players %}
+                <div style="border: 1px solid #ecf0f1; border-radius: 4px; padding: 1rem; margin-bottom: 0.75rem;">
+                    <div style="font-weight: bold; margin-bottom: 0.35rem;">{{ player.name }}</div>
+                    <div style="color: #666; font-size: 0.9rem; margin-bottom: 0.75rem;">
+                        Teams:
+                        {% for membership in player.members.all %}
+                            {{ membership.team.name }}{% if not forloop.last %}, {% endif %}
+                        {% empty %}
+                            none yet
+                        {% endfor %}
+                    </div>
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="claim">
+                        <input type="hidden" name="player_id" value="{{ player.pk }}">
+                        <button type="submit" class="btn">Yes, this is me</button>
+                    </form>
+                    <a href="{% url 'teams:player_detail' pk=player.pk %}" class="btn" style="background-color: #ecf0f1; color: #2c3e50;">Preview stats</a>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div style="padding: 1rem; background-color: #f8f9fa; border-radius: 4px; color: #666;">
+                No matching player profiles found for username <strong>{{ user.username }}</strong>.
+                Ask a team admin to add you as a member, or to link your account when editing your member record.
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

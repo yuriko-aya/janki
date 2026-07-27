@@ -30,9 +30,38 @@
                 {% endif %}
             </div>
         {% endfor %}
+
+        <div class="form-group">
+            {{ form.linked_username.label_tag }}
+            {{ form.linked_username }}
+            {% if form.linked_username.help_text %}
+                <p style="color: #666; font-size: 0.9rem; margin-top: 0.35rem;">{{ form.linked_username.help_text }}</p>
+            {% endif %}
+            {% if form.linked_username.errors %}
+                <div style="color: #e74c3c; margin-top: 0.5rem;">
+                    {% for error in form.linked_username.errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
         
-        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-            <button type="submit" class="btn">{% if form.instance.pk %}Update Member{% else %}Add Member{% endif %}</button>
+        <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            {% if show_duplicate_warning %}
+                <div style="width: 100%; margin-bottom: 1rem; padding: 1rem; background-color: #fff8e6; border: 1px solid #f39c12; border-radius: 4px;">
+                    <p style="margin: 0 0 0.75rem 0; color: #7f5a00;">
+                        This member already exists in these teams:
+                        <strong>{{ existing_teams|join:", " }}</strong>.
+                        Are you sure it's the same player?
+                    </p>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <button type="submit" name="confirm_same_player" value="yes" class="btn">Yes, same player</button>
+                        <button type="submit" name="confirm_same_player" value="no" class="btn" style="background-color: #95a5a6;">No, different person</button>
+                    </div>
+                </div>
+            {% else %}
+                <button type="submit" class="btn">{% if form.instance.pk %}Update Member{% else %}Add Member{% endif %}</button>
+            {% endif %}
             <a href="{% url 'teams:member_list' slug=team.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
         </div>
     </form>

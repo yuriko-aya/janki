@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
-from teams.models import Team, Member
+from teams.models import Team, Member, Player
 from scores.models import RawScore, CalculatedScore
 from scores.services.calculator import submit_session_scores, recalculate_member_score, get_session_details
 
@@ -24,10 +24,14 @@ class TieHandlingTestCase(TestCase):
         )
         
         # Create 4 members
-        self.alice = Member.objects.create(team=self.team, name='Alice')
-        self.bob = Member.objects.create(team=self.team, name='Bob')
-        self.charlie = Member.objects.create(team=self.team, name='Charlie')
-        self.diana = Member.objects.create(team=self.team, name='Diana')
+        player_alice = Player.objects.create(name='Alice')
+        player_bob = Player.objects.create(name='Bob')
+        player_charlie = Player.objects.create(name='Charlie')
+        player_diana = Player.objects.create(name='Diana')
+        self.alice = Member.objects.create(team=self.team, name='Alice', player=player_alice)
+        self.bob = Member.objects.create(team=self.team, name='Bob', player=player_bob)
+        self.charlie = Member.objects.create(team=self.team, name='Charlie', player=player_charlie)
+        self.diana = Member.objects.create(team=self.team, name='Diana', player=player_diana)
     
     def test_no_ties_normal_placement(self):
         """Test normal placement calculation without ties."""

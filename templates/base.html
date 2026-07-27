@@ -22,6 +22,7 @@
                 <li><a href="{% url 'accounts:contact' %}">Contact</a></li>
                 <li><a href="/bot-info">Discord Bot</a></li>
                 {% if user.is_authenticated %}
+                    <li><a href="{% url 'accounts:profile' %}">My Profile</a></li>
                     <li><a href="{% url 'accounts:logout' %}">Logout ({{ user.username }})</a></li>
                 {% else %}
                     <li><a href="{% url 'accounts:login' %}">Login</a></li>
