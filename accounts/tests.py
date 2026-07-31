@@ -281,6 +281,9 @@ class SocialLoginTemplateTestCase(TestCase):
     def test_login_page_shows_google_button_when_configured(self):
         response = self.client.get(reverse('accounts:login'))
         self.assertContains(response, 'Continue with Google')
+        self.assertContains(response, 'btn-social-google')
+        self.assertContains(response, 'role="button"')
+        self.assertContains(response, 'social-login-button-wrap')
 
     @override_settings(STORAGES=_test_storages, SOCIALACCOUNT_PROVIDERS={})
     def test_login_page_hides_social_buttons_when_unconfigured(self):
