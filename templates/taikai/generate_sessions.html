@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Fixed Sessions - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<h1>Generate Fixed Sessions</h1>
+<p>Tournament: <strong>{{ tournament.name }}</strong></p>
+<p style="color: #666;">
+    Mode: {{ tournament.get_session_mode_display }} —
+    {{ tournament.fixed_hanchan_count }} fixed hanchan(s)
+    {% if tournament.session_mode == 'hybrid' %}
+    <br>Rank-based hanchans are added one at a time from the Sessions page after fixed rounds are scored.
+    {% endif %}
+</p>
+<p>Players: {{ tournament.standing_members.count }} regular (need at least 4) — substitutes are assigned manually per session</p>
+
+<div style="background: white; padding: 2rem; border-radius: 4px; max-width: 500px; margin-top: 1rem;">
+    <form method="post">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<p style="color: #e74c3c;">{{ error }}</p>{% endfor %}
+        <div class="form-group">{{ form.confirm }} {{ form.confirm.label_tag }}</div>
+        <button type="submit" class="btn" style="background-color: #27ae60;">Generate Fixed Sessions</button>
+        <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

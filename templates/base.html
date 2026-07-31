@@ -11,6 +11,52 @@
     {% load static %}
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        header nav .nav-account-menu {
+            position: relative;
+        }
+
+        header nav .nav-account-menu > summary {
+            list-style: none;
+            cursor: pointer;
+            color: #fff;
+            font: inherit;
+            user-select: none;
+        }
+
+        header nav .nav-account-menu > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        header nav .nav-account-menu[open] > summary {
+            color: #3498db;
+        }
+
+        header nav .nav-account-panel {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 0.75rem);
+            min-width: 170px;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            padding: 0.35rem 0;
+            z-index: 1000;
+        }
+
+        header nav .nav-account-panel a {
+            display: block;
+            padding: 0.65rem 1rem;
+            color: #2c3e50 !important;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        header nav .nav-account-panel a:hover {
+            background: #f1f1f1;
+            color: #3498db !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -19,11 +65,18 @@
             <a href="{% url 'home' %}"><h1>🀄 {{ APP_NAME }}</h1></a>
             <ul>
                 <li><a href="{% url 'teams:team_list' %}">Teams</a></li>
-                <li><a href="{% url 'accounts:contact' %}">Contact</a></li>
+                <li><a href="{% url 'taikai:tournament_list' %}">Tournaments</a></li>
                 <li><a href="/bot-info">Discord Bot</a></li>
                 {% if user.is_authenticated %}
-                    <li><a href="{% url 'accounts:profile' %}">My Profile</a></li>
-                    <li><a href="{% url 'accounts:logout' %}">Logout ({{ user.username }})</a></li>
+                    <li class="nav-account">
+                        <details class="nav-account-menu">
+                            <summary>{{ user.username }} ▾</summary>
+                            <div class="nav-account-panel">
+                                <a href="{% url 'accounts:profile' %}">My Profile</a>
+                                <a href="{% url 'accounts:logout' %}">Logout</a>
+                            </div>
+                        </details>
+                    </li>
                 {% else %}
                     <li><a href="{% url 'accounts:login' %}">Login</a></li>
                 {% endif %}

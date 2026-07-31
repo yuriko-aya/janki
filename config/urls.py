@@ -42,6 +42,7 @@ urlpatterns = [
     path('admin/login/', AdminLoginView.as_view(), name='admin_login'),
     path('admin/', admin.site.urls),
     path('teams/', include('teams.urls')),
+    path('taikai/', include('taikai.urls')),
     path('scores/', include('scores.urls')),
     path('accounts/', include('accounts.urls')),
     path('accounts/social/', include('allauth.urls')),

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Member{% endblock %}
+
+{% block content %}
+<h1>Delete Member</h1>
+<p>Delete <strong>{{ object.shown_name }}</strong> from {{ object.tournament.name }}?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a href="{% url 'taikai:member_list' slug=object.tournament.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+</form>
+{% endblock %}
