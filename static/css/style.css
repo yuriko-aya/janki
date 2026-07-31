@@ -793,40 +793,102 @@ footer {
 .social-login {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
-.btn-social {
-    display: block;
+.social-login-button-wrap {
+    display: flex;
+    justify-content: center;
     width: 100%;
-    padding: 0.65rem 1rem;
+}
+
+a.btn-social,
+a.btn-social:visited {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 260px;
+    max-width: 100%;
+    padding: 0.7rem 1.25rem;
     border-radius: 4px;
     text-align: center;
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
+    line-height: 1.25;
     border: 1px solid transparent;
-    transition: opacity 0.2s;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.btn-social:hover {
-    opacity: 0.9;
+a.btn-social:hover,
+a.btn-social:focus,
+a.btn-social:active {
+    text-decoration: none;
 }
 
-.btn-social-google {
+.btn-social-icon {
+    display: flex;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.btn-social-icon svg,
+.btn-social-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.btn-social-label {
+    flex: 0 1 auto;
+}
+
+a.btn-social-google,
+a.btn-social-google:visited {
     background: #fff;
-    color: #333;
-    border-color: #ddd;
+    color: #3c4043;
+    border-color: #dadce0;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
 }
 
-.btn-social-facebook {
+a.btn-social-google:hover,
+a.btn-social-google:focus,
+a.btn-social-google:active {
+    background: #f8f9fa;
+    border-color: #d2e3fc;
+    color: #3c4043;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.12);
+}
+
+a.btn-social-facebook,
+a.btn-social-facebook:visited {
     background: #1877f2;
     color: #fff;
 }
 
-.btn-social-x {
+a.btn-social-facebook:hover,
+a.btn-social-facebook:focus,
+a.btn-social-facebook:active {
+    background: #166fe0;
+    color: #fff;
+}
+
+a.btn-social-x,
+a.btn-social-x:visited {
     background: #000;
+    color: #fff;
+}
+
+a.btn-social-x:hover,
+a.btn-social-x:focus,
+a.btn-social-x:active {
+    background: #222;
     color: #fff;
 }
 

@@ -1,17 +1,153 @@
 {% load socialaccount %}
 {% get_providers as socialaccount_providers %}
 {% if socialaccount_providers %}
+<style>
+.social-login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.social-login-button-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+a.btn-social,
+a.btn-social:visited {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 260px;
+    max-width: 100%;
+    padding: 0.7rem 1.25rem;
+    border-radius: 4px;
+    text-align: center;
+    text-decoration: none !important;
+    font-weight: 500;
+    font-size: 0.95rem;
+    line-height: 1.25;
+    border: 1px solid transparent;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.btn-social:hover,
+a.btn-social:focus,
+a.btn-social:active {
+    text-decoration: none !important;
+}
+
+.btn-social-icon {
+    display: flex;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.btn-social-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+a.btn-social-google,
+a.btn-social-google:visited {
+    background: #fff;
+    color: #3c4043 !important;
+    border-color: #dadce0;
+    box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+}
+
+a.btn-social-google:hover,
+a.btn-social-google:focus,
+a.btn-social-google:active {
+    background: #f8f9fa;
+    border-color: #d2e3fc;
+    color: #3c4043 !important;
+    box-shadow: 0 1px 3px rgba(60, 64, 67, 0.12);
+}
+
+a.btn-social-facebook,
+a.btn-social-facebook:visited {
+    background: #1877f2;
+    color: #fff !important;
+}
+
+a.btn-social-facebook:hover,
+a.btn-social-facebook:focus,
+a.btn-social-facebook:active {
+    background: #166fe0;
+    color: #fff !important;
+}
+
+a.btn-social-x,
+a.btn-social-x:visited {
+    background: #000;
+    color: #fff !important;
+}
+
+a.btn-social-x:hover,
+a.btn-social-x:focus,
+a.btn-social-x:active {
+    background: #222;
+    color: #fff !important;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+    color: #999;
+    font-size: 0.875rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.auth-divider span {
+    padding: 0 1rem;
+}
+</style>
 <div class="social-login">
     {% for provider in socialaccount_providers %}
+        <div class="social-login-button-wrap">
         {% if provider.id == 'google' %}
-            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social btn-social-google">Continue with Google</a>
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn-social btn-social-google" role="button">
+                <span class="btn-social-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    </svg>
+                </span>
+                <span class="btn-social-label">Continue with Google</span>
+            </a>
         {% elif provider.id == 'facebook' %}
-            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social btn-social-facebook">Continue with Facebook</a>
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn-social btn-social-facebook" role="button">
+                <span class="btn-social-label">Continue with Facebook</span>
+            </a>
         {% elif provider.id == 'twitter_oauth2' %}
-            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social btn-social-x">Continue with X</a>
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn-social btn-social-x" role="button">
+                <span class="btn-social-label">Continue with X</span>
+            </a>
         {% else %}
-            <a href="{% provider_login_url provider.id process='login' %}" class="btn btn-social">Continue with {{ provider.name }}</a>
+            <a href="{% provider_login_url provider.id process='login' %}" class="btn-social" role="button">
+                <span class="btn-social-label">Continue with {{ provider.name }}</span>
+            </a>
         {% endif %}
+        </div>
     {% endfor %}
 </div>
 <div class="auth-divider"><span>or</span></div>
