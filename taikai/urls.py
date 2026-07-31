@@ -13,6 +13,7 @@ urlpatterns = [
 
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='tournament_detail'),
     path('<slug:slug>/edit/', views.TournamentUpdateView.as_view(), name='tournament_update'),
+    path('<slug:slug>/member/<int:pk>/', views.TournamentMemberDetailView.as_view(), name='member_detail'),
     path('<slug:slug>/members/', views.TournamentMemberListView.as_view(), name='member_list'),
     path('<slug:slug>/members/add/', views.TournamentMemberCreateView.as_view(), name='member_create'),
     path('<slug:slug>/sessions/', views.TournamentSessionListView.as_view(), name='session_list'),

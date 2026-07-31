@@ -1,10 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, FormView
 from django.views import View
+import json
 
 from taikai.forms import (
     TournamentForm,
@@ -18,7 +20,7 @@ from taikai.mixins import (
     TournamentSlugMixin,
 )
 from taikai.models import Tournament, TournamentMember, TournamentSession, TournamentAdmin
-from taikai.services.calculator import get_tournament_standings
+from taikai.services.calculator import get_tournament_standings, get_tournament_member_game_history
 from taikai.services.session_generator import (
     generate_fixed_sessions,
     generate_next_rank_hanchan,
@@ -93,6 +95,66 @@ class TournamentMemberListView(TournamentAdminRequiredMixin, DetailView):
     context_object_name = 'tournament'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
+
+
+class TournamentMemberDetailView(TournamentSlugMixin, TournamentContextMixin, DetailView):
+    """Display detailed stats for a tournament member (public view)."""
+    model = TournamentMember
+    template_name = 'taikai/member_detail.html'
+    context_object_name = 'member'
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            TournamentMember.objects.select_related('player', 'total_score'),
+            pk=self.kwargs['pk'],
+            tournament=self.tournament,
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        member = self.object
+        game_history = get_tournament_member_game_history(member)
+        context['game_history'] = game_history
+
+        if game_history:
+            context['best_game'] = max(game_history, key=lambda g: g['calculated'])
+            context['worst_game'] = min(game_history, key=lambda g: g['calculated'])
+
+        paginator = Paginator(list(reversed(game_history)), 20)
+        context['page_obj'] = paginator.get_page(self.request.GET.get('page', 1))
+
+        standings = get_tournament_standings(self.tournament)
+        context['rank'] = None
+        for i, m in enumerate(standings, start=1):
+            if m.pk == member.pk:
+                context['rank'] = i
+                break
+        context['total_ranked'] = len(standings)
+
+        ts = getattr(member, 'total_score', None)
+        if ts and ts.games_played > 0:
+            games = ts.games_played
+            context['placement_bars'] = [
+                {'label': '1st', 'count': ts.first_place_count, 'pct': ts.first_place_count / games * 100, 'color': '#27ae60'},
+                {'label': '2nd', 'count': ts.second_place_count, 'pct': ts.second_place_count / games * 100, 'color': '#3498db'},
+                {'label': '3rd', 'count': ts.third_place_count, 'pct': ts.third_place_count / games * 100, 'color': '#f39c12'},
+                {'label': '4th', 'count': ts.fourth_place_count, 'pct': ts.fourth_place_count / games * 100, 'color': '#e74c3c'},
+            ]
+        else:
+            context['placement_bars'] = []
+
+        per_game_scores = [round(g['calculated'], 2) for g in game_history]
+        cumulative_scores = []
+        running = 0.0
+        for score in per_game_scores:
+            running += score
+            cumulative_scores.append(round(running, 2))
+        context['chart_labels_json'] = json.dumps([g['session_name'] for g in game_history])
+        context['chart_scores_json'] = json.dumps(cumulative_scores)
+        context['chart_per_game_json'] = json.dumps(per_game_scores)
+        context['chart_placements_json'] = json.dumps([g['placement'] for g in game_history])
+        context['player'] = member.player
+        return context
 
 
 class TournamentMemberCreateView(TournamentAdminRequiredMixin, TournamentContextMixin, CreateView):

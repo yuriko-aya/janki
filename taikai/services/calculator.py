@@ -8,6 +8,7 @@ from scores.services.calculator import (
     calculate_uma_for_placement,
 )
 from taikai.models import TournamentMemberTotal, TournamentSessionScore, TournamentMember
+from taikai.services.session_generator import is_session_scored
 
 
 def get_standing_totals(tournament):
@@ -24,9 +25,8 @@ def get_standing_totals(tournament):
 
 def recalculate_session(session):
     """Assign placements and recalculate totals for session members."""
-    tournament = session.tournament
     scores = list(session.scores.select_related('member').all())
-    if len(scores) != 4:
+    if len(scores) != 4 or not is_session_scored(session):
         for s in scores:
             s.placement = None
             s.save(update_fields=['placement'])
@@ -66,18 +66,35 @@ def recalculate_member_total(member):
 
     total = 0.0
     games = 0
+    placements = []
+    chombo_total = 0
+    placement_counts = {1: 0, 2: 0, 3: 0, 4: 0}
     for ms in member_scores:
         if ms.session_id not in complete_session_ids or ms.placement is None:
+            continue
+        if not is_session_scored(ms.session):
             continue
         uma = calculate_uma_for_placement(ms.placement, tournament)
         calculated = calculate_session_score(ms.score, ms.placement, uma, tournament, ms.chombo)
         total += calculated
         games += 1
+        placements.append(ms.placement)
+        placement_rounded = round(ms.placement)
+        if 1 <= placement_rounded <= 4:
+            placement_counts[placement_rounded] += 1
+        if ms.chombo > 0:
+            chombo_total += ms.chombo
 
     obj, _ = TournamentMemberTotal.objects.get_or_create(member=member)
     obj.total = total
     obj.games_played = games
     obj.average_per_game = total / games if games else 0.0
+    obj.average_placement = sum(placements) / len(placements) if placements else 0.0
+    obj.chombo_count = chombo_total
+    obj.first_place_count = placement_counts[1]
+    obj.second_place_count = placement_counts[2]
+    obj.third_place_count = placement_counts[3]
+    obj.fourth_place_count = placement_counts[4]
     obj.save()
 
 
@@ -90,6 +107,12 @@ def reset_tournament_standings(tournament):
                 'total': 0.0,
                 'games_played': 0,
                 'average_per_game': 0.0,
+                'average_placement': 0.0,
+                'chombo_count': 0,
+                'first_place_count': 0,
+                'second_place_count': 0,
+                'third_place_count': 0,
+                'fourth_place_count': 0,
             },
         )
 
@@ -112,6 +135,52 @@ def get_tournament_standings(tournament):
         .order_by('-total_score__total', 'name')
     )
     return list(members)
+
+
+def get_tournament_member_game_history(member):
+    """Return chronological game history for a tournament member."""
+    tournament = member.tournament
+    member_scores = (
+        TournamentSessionScore.objects
+        .filter(member=member, session__tournament=tournament)
+        .select_related('session')
+        .order_by('session__order_index', 'session__hanchan_number', 'session__table_number')
+    )
+
+    if not member_scores.exists():
+        return []
+
+    complete_session_ids = set(
+        TournamentSessionScore.objects
+        .filter(
+            session__tournament=tournament,
+            session_id__in=member_scores.values_list('session_id', flat=True),
+        )
+        .values('session_id')
+        .annotate(cnt=Count('id'))
+        .filter(cnt=4)
+        .values_list('session_id', flat=True)
+    )
+
+    game_history = []
+    for ms in member_scores:
+        if ms.session_id not in complete_session_ids or ms.placement is None:
+            continue
+        if not is_session_scored(ms.session):
+            continue
+        uma = calculate_uma_for_placement(ms.placement, tournament)
+        calculated = calculate_session_score(ms.score, ms.placement, uma, tournament, ms.chombo)
+        game_history.append({
+            'session_name': ms.session.name,
+            'session_id': ms.session_id,
+            'date': ms.session.created_at.date(),
+            'raw_score': ms.score,
+            'placement': ms.placement,
+            'calculated': calculated,
+            'chombo': ms.chombo,
+        })
+
+    return game_history
 
 
 def update_session_scores(session, score_data):
