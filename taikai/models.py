@@ -160,6 +160,12 @@ class TournamentMemberTotal(models.Model):
     total = models.FloatField(default=0.0)
     games_played = models.IntegerField(default=0)
     average_per_game = models.FloatField(default=0.0)
+    average_placement = models.FloatField(default=0.0)
+    chombo_count = models.IntegerField(default=0)
+    first_place_count = models.IntegerField(default=0)
+    second_place_count = models.IntegerField(default=0)
+    third_place_count = models.IntegerField(default=0)
+    fourth_place_count = models.IntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

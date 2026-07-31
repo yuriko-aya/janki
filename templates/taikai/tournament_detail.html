@@ -111,19 +111,37 @@
                         <th>Player</th>
                         <th style="text-align: right;">Games</th>
                         <th style="text-align: right;">Total</th>
-                        <th style="text-align: right;">Avg</th>
+                        <th class="hide-mobile" style="text-align: right;">Avg</th>
+                        <th style="text-align: right;">Avg Pos</th>
+                        <th class="hide-tablet" style="text-align: center;">1st</th>
+                        <th class="hide-tablet" style="text-align: center;">2nd</th>
+                        <th class="hide-tablet" style="text-align: center;">3rd</th>
+                        <th class="hide-tablet" style="text-align: center;">4th</th>
+                        <th class="hide-mobile" style="text-align: center;">Chombo</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for member in standings %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td><strong>{{ member.shown_name }}</strong></td>
+                        <td><a href="{% url 'taikai:member_detail' slug=tournament.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;"><strong>{{ member.shown_name }}</strong></a></td>
                         <td style="text-align: right;">{{ member.total_score.games_played }}</td>
                         <td style="text-align: right; font-weight: bold; color: {% if member.total_score.total >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
                             {{ member.total_score.total|floatformat:1 }}
                         </td>
-                        <td style="text-align: right;">{{ member.total_score.average_per_game|floatformat:1 }}</td>
+                        <td class="hide-mobile" style="text-align: right;">{{ member.total_score.average_per_game|floatformat:1 }}</td>
+                        <td style="text-align: right;">{% if member.total_score.games_played > 0 %}{{ member.total_score.average_placement|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.total_score.first_place_count }}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.total_score.second_place_count }}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.total_score.third_place_count }}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.total_score.fourth_place_count }}</td>
+                        <td class="hide-mobile" style="text-align: center;">
+                            {% if member.total_score.chombo_count > 0 %}
+                                <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">{{ member.total_score.chombo_count }}</span>
+                            {% else %}
+                                <span style="color: #95a5a6;">0</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

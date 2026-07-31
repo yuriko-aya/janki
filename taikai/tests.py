@@ -10,7 +10,7 @@ from taikai.services.session_generator import (
     generate_next_rank_hanchan,
     can_generate_next_rank_hanchan,
 )
-from taikai.services.calculator import get_tournament_standings, update_session_scores
+from taikai.services.calculator import get_tournament_standings, update_session_scores, get_tournament_member_game_history
 
 
 _test_storages = {
@@ -87,6 +87,35 @@ class SessionGeneratorTestCase(TestCase):
             self.tournament.sessions.values_list('scores__member_id', flat=True)
         )
         self.assertNotIn(sub.id, assigned_ids)
+
+    def test_unscored_sessions_not_counted_in_totals(self):
+        generate_fixed_sessions(self.tournament)
+        session = TournamentSession.objects.first()
+        _score_session(session)
+        member = session.scores.select_related('member').first().member
+        self.assertEqual(member.total_score.games_played, 1)
+
+        generate_fixed_sessions(self.tournament)
+        for member in self.tournament.standing_members():
+            ts = member.total_score
+            self.assertEqual(ts.games_played, 0)
+            self.assertEqual(ts.total, 0.0)
+
+    def test_member_stats_tracked(self):
+        generate_fixed_sessions(self.tournament)
+        session = TournamentSession.objects.first()
+        _score_session(session)
+        member = session.scores.select_related('member').first().member
+        ts = member.total_score
+        self.assertEqual(ts.games_played, 1)
+        self.assertGreater(ts.average_placement, 0)
+        self.assertEqual(
+            ts.first_place_count + ts.second_place_count + ts.third_place_count + ts.fourth_place_count,
+            1,
+        )
+        history = get_tournament_member_game_history(member)
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]['session_name'], session.name)
 
     def test_replace_member_with_substitute(self):
         sub = TournamentMember.objects.create(
@@ -229,6 +258,21 @@ class TournamentViewTestCase(TestCase):
         self.assertContains(response, 'Scoring Settings')
         self.assertContains(response, 'admin')
         self.assertContains(response, 'Session Details')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_member_detail_page(self):
+        members = []
+        for name in ['A', 'B', 'C', 'D']:
+            members.append(TournamentMember.objects.create(tournament=self.tournament, name=name))
+        generate_fixed_sessions(self.tournament)
+        session = self.tournament.sessions.first()
+        _score_session(session)
+        response = self.client.get(
+            reverse('taikai:member_detail', kwargs={'slug': 'view-test', 'pk': members[0].pk})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Placement Distribution')
+        self.assertContains(response, 'Game History')
 
     @override_settings(STORAGES=_test_storages)
     def test_generate_fixed_sessions_requires_admin(self):
