@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ session.name }}{% endblock %}
+
+{% block content %}
+<h1>Edit Session — {{ session.name }}</h1>
+<p><a href="{% url 'taikai:tournament_detail' slug=tournament.slug %}">{{ tournament.name }}</a></p>
+<p style="color: #666; font-size: 0.95rem;">Replace any seat with a substitute using the player dropdown.</p>
+
+<div style="background: white; padding: 2rem; border-radius: 4px; max-width: 560px; margin-top: 1rem;">
+    <form method="post">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<p style="color: #e74c3c;">{{ error }}</p>{% endfor %}
+
+        <div style="border: 1px solid #eee; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">
+            <h4 style="margin: 0 0 0.75rem 0;">Seat 1</h4>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.member_0.label_tag }}{{ form.member_0 }}</div>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.score_0.label_tag }}{{ form.score_0 }}</div>
+            <div class="form-group" style="margin-bottom: 0;">{{ form.chombo_0.label_tag }}{{ form.chombo_0 }}</div>
+        </div>
+        <div style="border: 1px solid #eee; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">
+            <h4 style="margin: 0 0 0.75rem 0;">Seat 2</h4>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.member_1.label_tag }}{{ form.member_1 }}</div>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.score_1.label_tag }}{{ form.score_1 }}</div>
+            <div class="form-group" style="margin-bottom: 0;">{{ form.chombo_1.label_tag }}{{ form.chombo_1 }}</div>
+        </div>
+        <div style="border: 1px solid #eee; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">
+            <h4 style="margin: 0 0 0.75rem 0;">Seat 3</h4>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.member_2.label_tag }}{{ form.member_2 }}</div>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.score_2.label_tag }}{{ form.score_2 }}</div>
+            <div class="form-group" style="margin-bottom: 0;">{{ form.chombo_2.label_tag }}{{ form.chombo_2 }}</div>
+        </div>
+        <div style="border: 1px solid #eee; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">
+            <h4 style="margin: 0 0 0.75rem 0;">Seat 4</h4>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.member_3.label_tag }}{{ form.member_3 }}</div>
+            <div class="form-group" style="margin-bottom: 0.75rem;">{{ form.score_3.label_tag }}{{ form.score_3 }}</div>
+            <div class="form-group" style="margin-bottom: 0;">{{ form.chombo_3.label_tag }}{{ form.chombo_3 }}</div>
+        </div>
+
+        <button type="submit" class="btn">Save Session</button>
+        <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'accounts',
     'teams',
     'scores',
+    'taikai',
 ]
 
 SITE_ID = 1

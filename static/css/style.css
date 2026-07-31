@@ -172,19 +172,31 @@ nav h1 {
     margin: 0;
 }
 
-nav ul {
+nav > ul {
     list-style: none;
     display: flex;
     gap: 2rem;
+    align-items: center;
+    margin: 0;
+    padding: 0;
 }
 
-nav a {
+nav ul {
+    list-style: none;
+}
+
+nav > a {
+    color: white;
+    text-decoration: none;
+}
+
+nav > ul > li > a {
     color: white;
     text-decoration: none;
     transition: color 0.3s;
 }
 
-nav a:hover {
+nav > ul > li > a:hover {
     color: #3498db;
 }
 
@@ -301,7 +313,9 @@ footer {
         gap: 1rem;
     }
 
-    nav ul {
+    nav > ul {
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 1rem;
     }
 

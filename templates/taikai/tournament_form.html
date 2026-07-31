@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Tournament{% endblock %}
+
+{% block content %}
+<h1>{% if form.instance.pk %}Edit Tournament{% else %}Create Tournament{% endif %}</h1>
+
+<div style="background: white; padding: 2rem; border-radius: 4px; max-width: 600px; margin-top: 1.5rem;">
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group" style="margin-bottom: 1rem;">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}<p style="color: #666; font-size: 0.85rem;">{{ field.help_text }}</p>{% endif %}
+            {% for error in field.errors %}<p style="color: #e74c3c;">{{ error }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn">Save</button>
+        <a href="{% url 'taikai:tournament_list' %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+    </form>
+</div>
+
+<script>
+(function () {
+    var mode = document.getElementById('id_session_mode');
+    var fixedRow = document.getElementById('id_fixed_hanchan_count');
+    if (!mode || !fixedRow) return;
+    var fixedGroup = fixedRow.closest('.form-group');
+
+    function syncFixedField() {
+        var rankOnly = mode.value === 'rank';
+        fixedGroup.style.display = rankOnly ? 'none' : '';
+    }
+
+    mode.addEventListener('change', syncFixedField);
+    syncFixedField();
+})();
+</script>
+{% endblock %}

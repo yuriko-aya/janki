@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Tournaments - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<h1>Tournaments (Taikai)</h1>
+
+<div style="margin: 1.5rem 0;">
+    {% if user.is_authenticated %}
+        <a href="{% url 'taikai:tournament_create' %}" class="btn">+ Create Tournament</a>
+    {% endif %}
+</div>
+
+{% if tournaments %}
+    <div style="background: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Mode</th>
+                    <th>Sessions</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tournaments %}
+                <tr>
+                    <td><a href="{% url 'taikai:tournament_detail' slug=t.slug %}"><strong>{{ t.name }}</strong></a></td>
+                    <td>{{ t.get_session_mode_display }}</td>
+                    <td>{% if t.sessions_generated %}Yes{% else %}Not generated{% endif %}</td>
+                    <td>{{ t.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <p style="color: #666;">No tournaments yet.</p>
+{% endif %}
+{% endblock %}

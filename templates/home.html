@@ -3,25 +3,28 @@
 {% block title %}{{ APP_NAME }}{% endblock %}
 
 {% block meta_description %}
-<meta name="description" content="Janki Mahjong Score Tracker is a free web app for tracking Japanese Mahjong scores across teams, with standings, session history, CSV/PDF export, and Discord bot integration.">
+<meta name="description" content="Janki Mahjong Score Tracker is a free web app for tracking Japanese Mahjong scores across teams and tournaments, with standings, session history, CSV/PDF export, and Discord bot integration.">
 {% endblock %}
 
 {% block content %}
 <section class="home-hero">
     <h1>{{ APP_NAME }}</h1>
     <p class="home-tagline">
-        A free web application for tracking Japanese Mahjong scores across teams and leagues.
+        A free web application for tracking Japanese Mahjong scores across teams, leagues, and tournaments.
     </p>
     <p class="home-description">
         Janki helps Mahjong groups record session results, calculate standings with proper
         Japanese scoring rules (Uma, Chombo), and share rankings with players. Team admins
         can manage members, submit scores, export results, and connect a Discord bot for
-        automated score entry.
+        automated score entry. For one-off events, run a tournament with pre-generated
+        sessions, fixed or Swiss-style pairings, and live standings on a dedicated page.
     </p>
     <div class="home-actions">
         <a href="{% url 'teams:team_list' %}" class="btn btn-primary">Browse Teams</a>
+        <a href="{% url 'taikai:tournament_list' %}" class="btn btn-primary">Browse Tournaments</a>
         {% if user.is_authenticated %}
             <a href="{% url 'teams:team_create' %}" class="btn btn-secondary">Create Team</a>
+            <a href="{% url 'taikai:tournament_create' %}" class="btn btn-secondary">Create Tournament</a>
         {% else %}
             <a href="{% url 'accounts:register' %}" class="btn btn-secondary">Create Account</a>
             <a href="{% url 'accounts:login' %}" class="btn btn-secondary">Login</a>
@@ -35,6 +38,10 @@
         <div class="home-feature-card">
             <h3>Team Management</h3>
             <p>Create teams, add members, and assign multiple admins to manage your league.</p>
+        </div>
+        <div class="home-feature-card">
+            <h3>Tournaments (Taikai)</h3>
+            <p>Run one-off events with pre-generated sessions, fixed or rank-based pairings, hybrid modes, substitute support, and standings on a dedicated tournament page.</p>
         </div>
         <div class="home-feature-card">
             <h3>Japanese Scoring</h3>
@@ -61,6 +68,10 @@
 
 <section class="home-links">
     <p>
+        <a href="{% url 'teams:team_list' %}">Teams</a>
+        &middot;
+        <a href="{% url 'taikai:tournament_list' %}">Tournaments</a>
+        &middot;
         <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
         &middot;
         <a href="{% url 'terms_of_service' %}">Terms of Service</a>

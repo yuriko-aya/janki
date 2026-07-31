@@ -68,7 +68,7 @@ function initializeFormValidation() {
 function initializeDynamicFeatures() {
     // Add active class to current nav link
     const currentPath = window.location.pathname;
-    document.querySelectorAll('nav a').forEach(link => {
+    document.querySelectorAll('nav > ul > li > a').forEach(link => {
         if (link.getAttribute('href') === currentPath) {
             link.classList.add('active');
         }

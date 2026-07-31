@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tournament.name }} - Tournament{% endblock %}
+
+{% block content %}
+<div class="team-header">
+    <div class="team-header-info">
+        <h1>{{ tournament.name }}</h1>
+        <p style="color: #666; margin-top: 0.5rem;">
+            {{ tournament.get_session_mode_display }} &bull; Created on {{ tournament.created_at|date:"M d, Y" }}
+        </p>
+    </div>
+    <div class="team-header-actions">
+        <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #9b59b6;">Sessions</a>
+        {% if is_tournament_admin %}
+            <a href="{% url 'taikai:member_list' slug=tournament.slug %}" class="btn">Members</a>
+            <a href="{% url 'taikai:tournament_update' slug=tournament.slug %}" class="btn" style="background-color: #f39c12;">Edit</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="team-detail-grid">
+    <div class="team-sidebar">
+        <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+            <h3>Tournament Info</h3>
+            <dl style="margin-top: 1rem;">
+                <dt style="font-weight: bold;">Members</dt>
+                <dd style="margin-bottom: 1rem;">{{ tournament.members.count }}</dd>
+
+                <dt style="font-weight: bold;">Admins</dt>
+                <dd style="margin-bottom: 1rem;">
+                    {% for admin in tournament.admins.all %}
+                        {{ admin.user.get_full_name|default:admin.user.username }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        <span style="color: #999;">None</span>
+                    {% endfor %}
+                </dd>
+
+                <dt style="font-weight: bold;">Tournament Slug</dt>
+                <dd style="margin-bottom: 1rem; font-family: monospace;">{{ tournament.slug }}</dd>
+
+                <dt style="font-weight: bold;">Hanchans</dt>
+                <dd style="margin-bottom: 1rem;">
+                    {% if tournament.session_mode == 'fixed' %}
+                        {{ tournament.fixed_hanchan_count }} fixed
+                    {% elif tournament.session_mode == 'rank' %}
+                        Rank-based (added one at a time)
+                    {% else %}
+                        {{ tournament.fixed_hanchan_count }} fixed, then rank-based (one at a time)
+                    {% endif %}
+                </dd>
+
+                {% if substitutes %}
+                <dt style="font-weight: bold;">Substitutes</dt>
+                <dd style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
+                    {{ substitutes|length }} not included in standings
+                </dd>
+                {% endif %}
+            </dl>
+        </div>
+
+        <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3>Scoring Settings</h3>
+            <dl style="margin-top: 1rem;">
+                <dt style="font-weight: bold; color: #2c3e50;">Base Score</dt>
+                <dd style="margin-bottom: 0.5rem;">
+                    <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                        <span style="color: #7f8c8d;">Start Point:</span> <span style="font-weight: bold;">{{ tournament.start_point|default:"30000" }}</span>
+                        <span style="color: #7f8c8d;">Target:</span> <span style="font-weight: bold;">{{ tournament.target_point|default:"30000" }}</span>
+                    </div>
+                    <p style="color: #7f8c8d; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Formula: (Raw Score - {{ tournament.target_point|default:"30000" }}) ÷ 1000</p>
+                </dd>
+
+                <dt style="font-weight: bold; color: #2c3e50; margin-top: 1rem;">Uma (Placement Bonus)</dt>
+                <dd style="margin-bottom: 0.5rem;">
+                    <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                        <span style="color: #7f8c8d;">1st:</span> <span style="font-weight: bold; color: #27ae60;">{{ tournament.uma_first|stringformat:"+d" }}</span>
+                        <span style="color: #7f8c8d;">2nd:</span> <span style="font-weight: bold; color: {% if tournament.uma_second >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">{{ tournament.uma_second|stringformat:"+d" }}</span>
+                        <span style="color: #7f8c8d;">3rd:</span> <span style="font-weight: bold; color: {% if tournament.uma_third >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">{{ tournament.uma_third|stringformat:"+d" }}</span>
+                        <span style="color: #7f8c8d;">4th:</span> <span style="font-weight: bold; color: #e74c3c;">{{ tournament.uma_fourth|stringformat:"+d" }}</span>
+                    </div>
+                </dd>
+
+                <dt style="font-weight: bold; color: #2c3e50; margin-top: 1rem;">Chombo Penalty</dt>
+                <dd style="margin-bottom: 1rem;">
+                    {% if tournament.chombo_enabled %}
+                        <span style="background-color: #27ae60; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">Enabled (-30 pts)</span>
+                    {% else %}
+                        <span style="background-color: #95a5a6; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">Disabled</span>
+                    {% endif %}
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="team-main-content">
+        <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div class="standings-header">
+                <h3 style="margin: 0;">Standings</h3>
+                <div class="standings-actions">
+                    <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">Session Details</a>
+                </div>
+            </div>
+
+            {% if standings %}
+            <div class="table-responsive">
+            <table style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th style="text-align: right;">Games</th>
+                        <th style="text-align: right;">Total</th>
+                        <th style="text-align: right;">Avg</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in standings %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ member.shown_name }}</strong></td>
+                        <td style="text-align: right;">{{ member.total_score.games_played }}</td>
+                        <td style="text-align: right; font-weight: bold; color: {% if member.total_score.total >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                            {{ member.total_score.total|floatformat:1 }}
+                        </td>
+                        <td style="text-align: right;">{{ member.total_score.average_per_game|floatformat:1 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <p style="color: #999; text-align: center; padding: 2rem;">No standings yet. Generate sessions and enter scores.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    <a href="{% url 'taikai:tournament_list' %}" class="btn" style="background-color: #95a5a6;">← All Tournaments</a>
+</div>
+{% endblock %}

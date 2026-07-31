@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Sessions - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<div class="team-header">
+    <div class="team-header-info">
+        <h1 class="team-title"><a href="{% url 'taikai:tournament_detail' slug=tournament.slug %}">{{ tournament.name }}</a> — Sessions</h1>
+    </div>
+    <div class="team-header-actions">
+        <a href="{% url 'taikai:tournament_detail' slug=tournament.slug %}" class="btn" style="background-color: #95a5a6; color: white;">← Back to Tournament</a>
+    </div>
+</div>
+
+{% if is_tournament_admin %}
+<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0;">
+    {% if tournament.uses_fixed_hanchans %}
+        <a href="{% url 'taikai:generate_sessions' slug=tournament.slug %}" class="btn" style="background-color: #27ae60;">
+            Generate / Regenerate Fixed Sessions
+        </a>
+    {% endif %}
+    {% if tournament.uses_rank_hanchans %}
+        {% if can_generate_rank %}
+            <form method="post" action="{% url 'taikai:generate_rank_hanchan' slug=tournament.slug %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="background-color: #3498db;">Generate Next Rank Hanchan</button>
+            </form>
+        {% else %}
+            <span style="color: #7f5a00; font-size: 0.95rem; align-self: center;">{{ rank_generate_message }}</span>
+        {% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+<div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+    <form method="get" class="filter-form">
+        <div class="filter-group">
+            <label for="member" style="font-weight: bold;">Player:</label>
+            <select name="member" id="member" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; min-width: 200px;">
+                <option value="">All players</option>
+                {% for member in members %}
+                    <option value="{{ member.pk }}" {% if selected_member_id == member.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ member.shown_name }}{% if member.is_substitute %} (sub){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn" style="background-color: #3498db; color: white; padding: 0.5rem 1rem;">Filter</button>
+        {% if selected_member_id %}
+            <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #95a5a6; color: white; padding: 0.5rem 1rem;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+{% if sessions %}
+<div style="background: white; padding: 1.5rem; border-radius: 4px;">
+    <p class="scoring-formula-info">
+        <strong>Scoring Formula:</strong> Base Score = (Raw Score - {{ tournament.target_point }}) ÷ 1,000 |
+        <strong>Uma Bonus:</strong> 1st: {{ tournament.uma_first|stringformat:"+d" }} pts, 2nd: {{ tournament.uma_second|stringformat:"+d" }} pts, 3rd: {{ tournament.uma_third|stringformat:"+d" }} pts, 4th: {{ tournament.uma_fourth|stringformat:"+d" }} pts
+        {% if tournament.chombo_enabled %} | <strong>Chombo Penalty:</strong> -30 pts each (stackable){% endif %}
+    </p>
+
+    <div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Session</th>
+                <th class="hide-mobile">Type</th>
+                <th class="hide-mobile">Status</th>
+                <th>Players</th>
+                <th>Scores</th>
+                {% if is_tournament_admin %}<th></th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in sessions %}
+            <tr>
+                <td><strong>{{ session.name }}</strong></td>
+                <td class="hide-mobile">{{ session.get_generation_type_display }}</td>
+                <td class="hide-mobile">
+                    {% if session.is_scored %}
+                        <span style="color: #27ae60;">Complete</span>
+                    {% else %}
+                        <span style="color: #e67e22;">Pending scores</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for s in session.scores.all %}
+                        {{ s.member.shown_name }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    {% for s in session.scores.all %}
+                        {{ s.score }}{% if not forloop.last %} / {% endif %}
+                    {% endfor %}
+                </td>
+                {% if is_tournament_admin %}
+                <td><a href="{% url 'taikai:session_edit' slug=tournament.slug pk=session.pk %}" class="btn">Edit</a></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% else %}
+<p style="color: #666; margin-top: 1rem; text-align: center; padding: 2rem; background: white; border-radius: 4px;">
+    {% if selected_member_id %}
+        No sessions found for this player.
+    {% else %}
+        No sessions yet.
+        {% if is_tournament_admin %}
+            {% if tournament.session_mode == 'rank' %}
+                Use <strong>Generate Next Rank Hanchan</strong> above to create the first round.
+            {% else %}
+                Use <strong>Generate Fixed Sessions</strong> above.
+            {% endif %}
+        {% endif %}
+    {% endif %}
+</p>
+{% endif %}
+{% endblock %}

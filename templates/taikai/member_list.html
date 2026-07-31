@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tournament.name }} - Members{% endblock %}
+
+{% block content %}
+<h1><a href="{% url 'taikai:tournament_detail' slug=tournament.slug %}">{{ tournament.name }}</a> — Members</h1>
+
+<div style="margin: 1rem 0;">
+    <a href="{% url 'taikai:member_create' slug=tournament.slug %}" class="btn">+ Add Member</a>
+</div>
+
+{% if tournament.members.all %}
+<table style="background: white; width: 100%; padding: 1rem;">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for member in tournament.members.all %}
+        <tr>
+            <td><strong>{{ member.shown_name }}</strong></td>
+            <td>{% if member.is_substitute %}Substitute{% else %}Regular{% endif %}</td>
+            <td>
+                <a href="{% url 'taikai:member_update' pk=member.pk %}" class="btn">Edit</a>
+                <a href="{% url 'taikai:member_delete' pk=member.pk %}" class="btn btn-danger">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No members yet.</p>
+{% endif %}
+
+<p style="margin-top: 1.5rem;"><a href="{% url 'taikai:tournament_detail' slug=tournament.slug %}">← Back to tournament</a></p>
+{% endblock %}

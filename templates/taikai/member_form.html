@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Member - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<h1>{% if form.instance.pk %}Edit{% else %}Add{% endif %} Member</h1>
+
+<div style="background: white; padding: 2rem; border-radius: 4px; max-width: 500px; margin-top: 1rem;">
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group" style="margin-bottom: 1rem;">
+            {{ field.label_tag }}
+            {{ field }}
+            {% for error in field.errors %}<p style="color: #e74c3c;">{{ error }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn">Save</button>
+        <a href="{% url 'taikai:member_list' slug=tournament.slug %}" class="btn" style="background-color: #95a5a6;">Cancel</a>
+    </form>
+</div>
+{% endblock %}
