@@ -1,47 +1,55 @@
-# Mahjong Score Tracker
+# Janki — Mahjong Score Tracker
 
-A Django web application for tracking Mahjong scores across multiple teams with proper Japanese Mahjong scoring rules.
+A Django web application for tracking Mahjong scores across teams and tournaments, with proper Japanese Mahjong scoring rules.
 
 ## Features
 
-- **Multi-team support**: Multiple teams can be managed independently
-- **Japanese Mahjong scoring**: Proper calculation with Uma (placement bonuses) and Chombo (bankruptcy penalties)
-- **Customizable team settings**: Configure target points, Uma values, and Chombo rules per team
-- **Score tracking**: Record individual scores for each player in Mahjong sessions
-- **Monthly standings**: View team rankings with aggregated scores filtered by month/year
-- **Session history**: Detailed view of all game sessions with placement and score breakdowns
-- **REST API**: Submit and manage scores via API endpoints
-- **Admin dashboard**: Team admins can manage members and submit scores
-- **Public pages**: View-only access to team information and standings
-- **Mobile responsive**: Fully optimized for mobile devices
-- **Session archiving**: Archive old sessions to exclude from standings calculations
+### Teams
+- **Multi-team support**: Multiple teams managed independently
+- **Japanese Mahjong scoring**: Uma (placement bonuses) and Chombo (bankruptcy penalties)
+- **Customizable settings**: Target point, Uma values, and chombo penalty per team
+- **Score tracking**: Record raw scores for each player in 4-player sessions
+- **Monthly & yearly standings**: Rankings with placement and chombo stats
+- **Session history**: Breakdown of base score, Uma, chombo, and final points
+- **Session archiving**: Exclude old sessions from standings while keeping history
+- **Player profiles**: Link members to global player accounts for cross-team stats
+
+### Tournaments (Taikai)
+- **One-off events**: Fixed, rank-based, or hybrid session modes
+- **Auto-generated pairings**: Fixed hanchans with repeat-pairing minimization
+- **Rank hanchans**: Swiss-style rounds added one at a time after scores are entered
+- **Manual sessions**: Create individual tables and pick players (sorted by standing)
+- **Substitutes**: Excluded from auto pairings and standings; assignable per session
+- **Member stats**: Placement distribution, chombo count, game history, charts
+
+### Platform
+- **REST API**: Submit and manage team scores via token-authenticated endpoints
+- **Social login**: Google (optional), plus email/password registration
+- **Admin dashboards**: Team and tournament admins manage members and scores
+- **Public pages**: View-only access to standings and sessions
+- **Mobile responsive**: Optimized layouts for phones and tablets
 
 ## Project Structure
 
 ```
 project_root/
-├── accounts/           # User authentication, TeamAdmin model, email verification
-├── teams/              # Team and Member models, team CRUD operations
-├── scores/             # RawScore, CalculatedScore, and scoring logic
+├── accounts/           # User auth, TeamAdmin, email verification, password reset
+├── teams/              # Team, Member, Player models; team CRUD
+├── scores/             # RawScore, CalculatedScore, scoring logic, REST API
 │   ├── services/
-│   │   └── calculator.py   # Score aggregation, Uma calculation, tie handling
-│   ├── api_views.py        # REST API endpoints
-│   ├── api_serializers.py  # DRF serializers
-│   └── templatetags/       # Custom template filters
-├── templates/          # HTML templates organized by app
-│   ├── base.html
-│   ├── accounts/
-│   ├── teams/
-│   └── scores/
-├── static/             # CSS, JavaScript, images
-│   ├── css/
-│   │   └── style.css   # Main stylesheet with responsive design
-│   └── js/
-│       └── app.js
+│   │   └── calculator.py   # Score aggregation, Uma, chombo, tie handling
+│   ├── api_views.py
+│   └── api_serializers.py
+├── taikai/             # Tournaments: sessions, pairings, standings
+│   ├── services/
+│   │   ├── calculator.py       # Tournament score totals
+│   │   └── session_generator.py # Pairing generation
+│   └── ...
+├── templates/          # HTML templates (accounts, teams, scores, taikai)
+├── static/             # CSS, favicon, images
 ├── config/             # Django settings and URL configuration
 ├── manage.py
 ├── requirements.txt
-├── .env.example        # Example environment variables
 └── README.md
 ```
 
@@ -100,30 +108,33 @@ project_root/
    - Main site: http://localhost:8000
    - Admin panel: http://localhost:8000/admin
    - Teams: http://localhost:8000/teams/
+   - Tournaments: http://localhost:8000/taikai/
 
 ## Usage
 
 ### Creating a Team
 
-1. Register an account at http://localhost:8000/accounts/register/
+1. Register at http://localhost:8000/accounts/register/ (or sign in with Google if configured)
 2. Verify your email (check console logs in development)
 3. Login at http://localhost:8000/accounts/login/
 4. Navigate to Teams → Create Team
 5. Enter the team name and configure scoring settings
-6. You are now the admin of this team
+6. You are now an admin of this team
 
-### Configuring Team Scoring Settings
+### Configuring Scoring Settings (Teams & Tournaments)
 
-Each team can customize their Mahjong scoring rules:
+Both teams and tournaments share the same scoring model:
 
-- **Start Point**: Initial chips for each player (default: 30,000)
-- **Target Point**: Target score for calculating base points (default: 30,000)
+- **Start Point**: Initial chips per player (default: 30,000) — informational only
+- **Target Point**: Used in base score calculation (default: 30,000)
 - **Uma (Placement Bonus)**:
-  - 1st place: +15 points (customizable)
-  - 2nd place: +5 points (customizable)
-  - 3rd place: -5 points (customizable)
-  - 4th place: -15 points (customizable)
-- **Chombo Penalty**: Enable/disable bankruptcy penalty (-30 points per chombo)
+  - 1st place: +15 (customizable)
+  - 2nd place: +5 (customizable)
+  - 3rd place: -5 (customizable)
+  - 4th place: -15 (customizable)
+- **Chombo**:
+  - **Enabled**: Toggle bankruptcy penalty on/off
+  - **Penalty**: Raw score deducted per chombo (default: 30,000 → **−30 pts** after ÷1,000)
 
 ### Adding Members
 
@@ -144,30 +155,50 @@ Each team can customize their Mahjong scoring rules:
 2. Enter a unique Session ID (e.g., "2026-01-04-game1")
 3. Enter the session date (optional, defaults to today)
 4. Select each of the 4 players and enter their raw scores
-5. Check "Chombo" for any player who went bankrupt
+5. Enter chombo count (0, 1, 2, …) for any player who went bankrupt
 6. Click "Submit Session"
-7. Scores are automatically calculated using the team's Uma and Chombo settings
+7. Scores are calculated using the team's target point, Uma, and chombo settings
+
+### Running a Tournament
+
+1. Go to **Tournaments** in the nav (or `/taikai/`)
+2. Create a tournament and set session mode:
+   - **Fixed**: Generate all fixed hanchans at once
+   - **Rank**: Add hanchans one at a time by standing (Swiss-style)
+   - **Hybrid**: Fixed hanchans first, then rank-based rounds
+3. Add members (mark substitutes if needed)
+4. From **Sessions**, generate pairings or **Create Session** manually
+5. Enter scores for each table; rank hanchans unlock after all tables in the current hanchan are scored
+6. View standings and per-member stats on the tournament detail page
 
 ### Score Calculation
 
-For each session, a member's score is calculated as:
+For each session, a player's score is:
 
 ```
-Calculated Score = ((Raw Score - Target Point) / 1,000) + Uma Bonus + (Chombo Penalty × Chombo Count)
+Calculated = ((Raw Score − Target Point) / 1,000) + Uma + Chombo adjustment
 ```
+
+Where **Chombo adjustment** = `−(chombo_penalty / 1,000) × chombo_count` when chombo is enabled.
+
+**Important:** Base score uses **`target_point`**, not a hardcoded 30,000. Thirty thousand is only the default target point.
 
 **Example:**
 - Raw Score: 35,000
 - Target Point: 30,000
 - Placement: 1st (Uma: +15)
-- Chombo: 0
+- Chombo count: 0
 
 **Calculation:**
 ```
-Base = (35,000 - 30,000) / 1,000 = +5.0
-Uma = +15
+Base = (35,000 − 30,000) / 1,000 = +5.0
+Uma  = +15
 Total = 5.0 + 15 = +20.0 points
 ```
+
+**Example with chombo:**
+- Chombo penalty: 30,000 (default), chombo count: 2
+- Penalty = −(30,000 / 1,000) × 2 = **−60 points**
 
 **Tie Handling:**
 - Tied players share placements (e.g., tied for 1st-2nd = placement 1.5 each)
@@ -211,14 +242,18 @@ Total = 5.0 + 15 = +20.0 points
 - `uma_third`: Uma bonus for 3rd place (default: -5)
 - `uma_fourth`: Uma bonus for 4th place (default: -15)
 - `chombo_enabled`: Enable chombo penalty (default: True)
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
+- `chombo_penalty`: Raw score penalty per chombo (default: 30,000)
+- `hidden`: Hide from public team list (default: False)
 
 ### Member
 - `team`: ForeignKey to Team
-- `name`: Member name
-- `join_date`: Date member joined
-- `created_at`: Creation timestamp
+- `name`: Member name (no spaces)
+- `display_name`: Optional display name in standings
+- `player`: Optional link to global Player profile
+
+### Player
+- Cross-team identity; optional link to a user account
+- Aggregated stats across all linked team memberships
 
 ### RawScore (per session entry)
 - `member`: ForeignKey to Member
@@ -245,9 +280,21 @@ Total = 5.0 + 15 = +20.0 points
 - `updated_at`: Last update timestamp
 
 ### TeamAdmin
-- `user`: OneToOneField to Django User
+- `user`: ForeignKey to Django User
 - `team`: ManyToManyField to Team (a user can admin multiple teams)
-- `created_at`: Creation timestamp
+
+### Tournament (Taikai)
+- Same scoring fields as Team (`target_point`, Uma, `chombo_enabled`, `chombo_penalty`, …)
+- `session_mode`: `fixed`, `rank`, or `hybrid`
+- `fixed_hanchan_count`: Number of fixed hanchans (fixed/hybrid modes)
+- `hidden`: Hide from public tournament list
+
+### TournamentMember
+- `tournament`, `name`, `display_name`, `is_substitute`, optional `player` link
+
+### TournamentSession / TournamentSessionScore
+- Pre-generated or manual tables (4 players); scores and chombo count per seat
+- `TournamentMemberTotal`: Cached standing totals and placement/chombo stats
 
 ## Architecture
 
@@ -316,7 +363,7 @@ See `API_DOCUMENTATION.md` for full API details.
 - **Database**: SQLite (development) / PostgreSQL (production)
 - **ORM**: Django ORM only (no raw SQL)
 - **API Framework**: Django REST Framework (for API endpoints)
-- **Authentication**: Django's built-in auth + DRF Token Authentication
+- **Authentication**: Django auth + DRF tokens; optional Google OAuth via django-allauth
 - **Static Files**: ManifestStaticFilesStorage (with content-based hashing for cache busting)
 - **Environment**: django-environ for configuration
 - **Frontend**: Responsive HTML/CSS with mobile-first design
@@ -335,12 +382,16 @@ DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=db.sqlite3
 
 # Or for PostgreSQL
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=janki_db
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
+# DB_ENGINE=django.db.backends.postgresql
+# DB_NAME=janki_db
+# DB_USER=postgres
+# DB_PASSWORD=your_password
+# DB_HOST=localhost
+# DB_PORT=5432
+
+# Optional: Google OAuth (social login)
+# GOOGLE_OAUTH_CLIENT_ID=...
+# GOOGLE_OAUTH_CLIENT_SECRET=...
 ```
 
 ## Development Commands
