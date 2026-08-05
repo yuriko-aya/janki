@@ -481,4 +481,4 @@ Refer to `.github/copilot-instructions.md` for:
 
 ## License
 
-To be determined.
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
