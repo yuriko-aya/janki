@@ -14,6 +14,9 @@
 
 {% if is_tournament_admin %}
 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0;">
+    <a href="{% url 'taikai:session_create' slug=tournament.slug %}" class="btn" style="background-color: #8e44ad; color: white;">
+        Create Session
+    </a>
     {% if tournament.uses_fixed_hanchans %}
         <a href="{% url 'taikai:generate_sessions' slug=tournament.slug %}" class="btn" style="background-color: #27ae60;">
             Generate / Regenerate Fixed Sessions
@@ -57,7 +60,7 @@
     <p class="scoring-formula-info">
         <strong>Scoring Formula:</strong> Base Score = (Raw Score - {{ tournament.target_point }}) ÷ 1,000 |
         <strong>Uma Bonus:</strong> 1st: {{ tournament.uma_first|stringformat:"+d" }} pts, 2nd: {{ tournament.uma_second|stringformat:"+d" }} pts, 3rd: {{ tournament.uma_third|stringformat:"+d" }} pts, 4th: {{ tournament.uma_fourth|stringformat:"+d" }} pts
-        {% if tournament.chombo_enabled %} | <strong>Chombo Penalty:</strong> -30 pts each (stackable){% endif %}
+        {% if tournament.chombo_enabled %} | <strong>Chombo Penalty:</strong> -{{ tournament.chombo_penalty_points|floatformat:0 }} pts each ({{ tournament.chombo_penalty|floatformat:0 }} raw, stackable){% endif %}
     </p>
 
     <div class="table-responsive">
@@ -74,6 +77,13 @@
         </thead>
         <tbody>
             {% for session in sessions %}
+            {% ifchanged session.hanchan_number %}
+            <tr>
+                <td colspan="{% if is_tournament_admin %}6{% else %}5{% endif %}" style="background-color: #ecf0f1; font-weight: 600; color: #2c3e50; padding: 0.65rem 1rem; border-top: 2px solid #bdc3c7;">
+                    Hanchan {{ session.hanchan_number }}
+                </td>
+            </tr>
+            {% endifchanged %}
             <tr>
                 <td><strong>{{ session.name }}</strong></td>
                 <td class="hide-mobile">{{ session.get_generation_type_display }}</td>

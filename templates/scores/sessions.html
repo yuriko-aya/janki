@@ -45,7 +45,7 @@
         <p class="scoring-formula-info">
             <strong>Scoring Formula:</strong> Base Score = (Raw Score - {{ team.target_point }}) ÷ 1,000 | 
             <strong>Uma Bonus:</strong> 1st: {{ team.uma_first|stringformat:"+d" }} pts, 2nd: {{ team.uma_second|stringformat:"+d" }} pts, 3rd: {{ team.uma_third|stringformat:"+d" }} pts, 4th: {{ team.uma_fourth|stringformat:"+d" }} pts
-            {% if team.chombo_enabled %} | <strong>Chombo Penalty:</strong> -30 pts each (stackable){% endif %}
+            {% if team.chombo_enabled %} | <strong>Chombo Penalty:</strong> -{{ team.chombo_penalty_points|floatformat:0 }} pts each ({{ team.chombo_penalty|floatformat:0 }} raw, stackable){% endif %}
         </p>
         
         <div style="display: grid; gap: 2rem;">
@@ -118,7 +118,7 @@
                                     </td>
                                     <td class="hide-tablet" style="padding: 0.75rem; text-align: center;">
                                         {% if score.chombo > 0 %}
-                                            <span style="background-color: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9rem;">{{ score.chombo }}x -{{ score.chombo|mul:30 }}</span>
+                                            <span style="background-color: #e74c3c; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.9rem;">{{ score.chombo }}x -{{ score.chombo|mul:team.chombo_penalty_points|floatformat:0 }}</span>
                                         {% else %}
                                             <span style="color: #95a5a6;">-</span>
                                         {% endif %}

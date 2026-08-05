@@ -12,6 +12,7 @@ from taikai.forms import (
     TournamentForm,
     TournamentMemberForm,
     GenerateSessionsForm,
+    ManualSessionForm,
     TournamentSessionScoreForm,
 )
 from taikai.mixins import (
@@ -25,6 +26,7 @@ from taikai.services.session_generator import (
     generate_fixed_sessions,
     generate_next_rank_hanchan,
     can_generate_next_rank_hanchan,
+    create_manual_session,
 )
 
 
@@ -257,6 +259,25 @@ class GenerateRankHanchanView(TournamentAdminRequiredMixin, View):
             return redirect('taikai:session_list', slug=self.tournament.slug)
         messages.success(request, f'Generated {count} session(s). {message}')
         return redirect('taikai:session_list', slug=self.tournament.slug)
+
+
+class CreateManualSessionView(TournamentAdminRequiredMixin, TournamentContextMixin, FormView):
+    template_name = 'taikai/session_create.html'
+    form_class = ManualSessionForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['tournament'] = self.tournament
+        return kwargs
+
+    def form_valid(self, form):
+        try:
+            session = create_manual_session(self.tournament, form.get_member_ids())
+        except ValueError as exc:
+            form.add_error(None, str(exc))
+            return self.form_invalid(form)
+        messages.success(self.request, f'Created {session.name}. Enter scores below.')
+        return redirect('taikai:session_edit', slug=self.tournament.slug, pk=session.pk)
 
 
 class TournamentSessionListView(TournamentSlugMixin, TournamentContextMixin, DetailView):

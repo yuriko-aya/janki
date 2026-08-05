@@ -9,7 +9,7 @@ class TeamForm(forms.ModelForm):
     
     class Meta:
         model = Team
-        fields = ['name', 'start_point', 'target_point', 'uma_first', 'uma_second', 'uma_third', 'uma_fourth', 'chombo_enabled', 'hidden']
+        fields = ['name', 'start_point', 'target_point', 'uma_first', 'uma_second', 'uma_third', 'uma_fourth', 'chombo_enabled', 'chombo_penalty', 'hidden']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -42,6 +42,11 @@ class TeamForm(forms.ModelForm):
             'chombo_enabled': forms.CheckboxInput(attrs={
                 'class': 'form-check-input',
             }),
+            'chombo_penalty': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '30000',
+                'min': '0',
+            }),
             'hidden': forms.CheckboxInput(attrs={
                 'class': 'form-check-input',
             }),
@@ -53,8 +58,12 @@ class TeamForm(forms.ModelForm):
             'uma_second': '2nd Place Uma',
             'uma_third': '3rd Place Uma',
             'uma_fourth': '4th Place Uma',
-            'chombo_enabled': 'Enable Chombo Penalty (-30 points)',
+            'chombo_enabled': 'Enable Chombo Penalty',
+            'chombo_penalty': 'Chombo Penalty (raw score)',
             'hidden': 'Hide from Team List (team is still accessible via direct link)',
+        }
+        help_texts = {
+            'chombo_penalty': 'Raw score deducted per chombo (default 30000 = -30 pts after ÷1000).',
         }
 
 

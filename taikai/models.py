@@ -21,6 +21,10 @@ class Tournament(models.Model):
     uma_third = models.IntegerField(default=-5)
     uma_fourth = models.IntegerField(default=-15)
     chombo_enabled = models.BooleanField(default=True)
+    chombo_penalty = models.IntegerField(
+        default=30000,
+        help_text='Raw score penalty per chombo (default 30000 = -30 pts after ÷1000)',
+    )
 
     session_mode = models.CharField(
         max_length=10,
@@ -42,6 +46,11 @@ class Tournament(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def chombo_penalty_points(self):
+        """Calculated penalty points per chombo (raw penalty ÷ 1000)."""
+        return self.chombo_penalty / 1000.0
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -118,6 +127,7 @@ class TournamentSession(models.Model):
     class GenerationType(models.TextChoices):
         FIXED = 'fixed', 'Fixed'
         RANK = 'rank', 'Rank-based'
+        MANUAL = 'manual', 'Manual'
 
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='sessions')
     name = models.CharField(max_length=100)

@@ -12,7 +12,7 @@ Scoring Formula:
     3rd place: -5
     4th place: -15
   
-  Chombo penalty: -30 (if player went bankrupt)
+  Chombo penalty: chombo_penalty / 1000 per chombo (default 30000 raw = -30 pts, if enabled)
 """
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -123,6 +123,14 @@ def calculate_uma_for_placement(placement, team):
     return uma
 
 
+def get_chombo_penalty_points(scoring_config, chombo_count=1):
+    """Return calculated penalty points for the given chombo count."""
+    if chombo_count <= 0 or not scoring_config.chombo_enabled:
+        return 0.0
+    penalty_raw = getattr(scoring_config, 'chombo_penalty', 30000)
+    return (penalty_raw / 1000.0) * chombo_count
+
+
 def calculate_session_score(raw_score_value, placement, uma, team, chombo_count=0):
     """
     Calculate final score for a session with chombo penalty.
@@ -143,9 +151,9 @@ def calculate_session_score(raw_score_value, placement, uma, team, chombo_count=
     # Add Uma bonus
     calculated = base_score + uma
     
-    # Apply chombo penalty if applicable and enabled for this team
+    # Apply chombo penalty if applicable and enabled
     if chombo_count > 0 and team.chombo_enabled:
-        calculated -= (30 * chombo_count)
+        calculated -= get_chombo_penalty_points(team, chombo_count)
     
     return calculated
 
@@ -675,7 +683,7 @@ def get_session_details(session_id, team):
         
         # Apply chombo penalty if enabled for this team (multiply by chombo count)
         if raw_score.chombo > 0 and team.chombo_enabled:
-            calculated -= (30 * raw_score.chombo)
+            calculated -= get_chombo_penalty_points(team, raw_score.chombo)
         
         session_details['players'].append({
             'member': raw_score.member.shown_name,

@@ -9,6 +9,7 @@ from taikai.services.session_generator import (
     generate_fixed_sessions,
     generate_next_rank_hanchan,
     can_generate_next_rank_hanchan,
+    create_manual_session,
 )
 from taikai.services.calculator import get_tournament_standings, update_session_scores, get_tournament_member_game_history
 
@@ -26,6 +27,17 @@ def _score_session(session, base=30000):
         for i, s in enumerate(scores)
     ]
     update_session_scores(session, data)
+
+
+def _pair_counts_for_tournament(tournament):
+    pair_counts = {}
+    for session in tournament.sessions.all():
+        member_ids = [s.member_id for s in session.scores.all()]
+        for i, a in enumerate(member_ids):
+            for b in member_ids[i + 1:]:
+                key = (min(a, b), max(a, b))
+                pair_counts[key] = pair_counts.get(key, 0) + 1
+    return pair_counts
 
 
 class SessionGeneratorTestCase(TestCase):
@@ -49,6 +61,27 @@ class SessionGeneratorTestCase(TestCase):
         session = TournamentSession.objects.get(name='Hanchan 1 Table 1')
         self.assertEqual(session.scores.count(), 4)
         self.assertTrue(all(s.score == 0 for s in session.scores.all()))
+
+    def test_no_repeat_pairings_for_sixteen_players(self):
+        self.tournament.fixed_hanchan_count = 4
+        for i in range(9, 17):
+            TournamentMember.objects.create(tournament=self.tournament, name=f'P{i}')
+        generate_fixed_sessions(self.tournament)
+        pair_counts = _pair_counts_for_tournament(self.tournament)
+        self.assertTrue(pair_counts)
+        self.assertTrue(all(count <= 1 for count in pair_counts.values()))
+        self.assertEqual(self.tournament.sessions.count(), 16)
+
+    def test_sixteen_players_ten_hanchans_limits_repeat_pairings(self):
+        self.tournament.fixed_hanchan_count = 10
+        for i in range(9, 17):
+            TournamentMember.objects.create(tournament=self.tournament, name=f'P{i}')
+        generate_fixed_sessions(self.tournament)
+        pair_counts = _pair_counts_for_tournament(self.tournament)
+        self.assertEqual(self.tournament.sessions.count(), 40)
+        self.assertEqual(len(pair_counts), 120)
+        self.assertLessEqual(max(pair_counts.values()), 2)
+        self.assertEqual(sum(pair_counts.values()), 240)
 
     def test_regenerate_fixed_sessions_resets_standings(self):
         generate_fixed_sessions(self.tournament)
@@ -275,6 +308,17 @@ class TournamentViewTestCase(TestCase):
         self.assertContains(response, 'Game History')
 
     @override_settings(STORAGES=_test_storages)
+    def test_session_list_groups_by_hanchan(self):
+        self.tournament.fixed_hanchan_count = 2
+        for name in ['E', 'F', 'G', 'H']:
+            TournamentMember.objects.create(tournament=self.tournament, name=name)
+        generate_fixed_sessions(self.tournament)
+        response = self.client.get(reverse('taikai:session_list', kwargs={'slug': 'view-test'}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Hanchan 1')
+        self.assertContains(response, 'Hanchan 2')
+
+    @override_settings(STORAGES=_test_storages)
     def test_generate_fixed_sessions_requires_admin(self):
         self.client.login(username='admin', password='pass')
         for name in ['A', 'B', 'C', 'D']:
@@ -303,3 +347,51 @@ class TournamentViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(tournament.sessions.count(), 2)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_create_manual_session(self):
+        members = []
+        for name in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+            members.append(TournamentMember.objects.create(tournament=self.tournament, name=name))
+        generate_fixed_sessions(self.tournament)
+        session = self.tournament.sessions.first()
+        _score_session(session, base=35000)
+
+        self.client.login(username='admin', password='pass')
+        picked = [members[0].pk, members[1].pk, members[2].pk, members[3].pk]
+        response = self.client.post(
+            reverse('taikai:session_create', kwargs={'slug': 'view-test'}),
+            {
+                'member_0': picked[0],
+                'member_1': picked[1],
+                'member_2': picked[2],
+                'member_3': picked[3],
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        new_session = self.tournament.sessions.order_by('-order_index').first()
+        self.assertEqual(new_session.generation_type, TournamentSession.GenerationType.MANUAL)
+        self.assertEqual(new_session.scores.count(), 4)
+        self.assertEqual(response.url, reverse('taikai:session_edit', kwargs={'slug': 'view-test', 'pk': new_session.pk}))
+
+        response = self.client.get(response.url)
+        self.assertContains(response, '(+')
+        self.assertContains(response, 'Seat 1')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_create_manual_session_rejects_duplicate_players(self):
+        members = []
+        for name in ['A', 'B', 'C', 'D']:
+            members.append(TournamentMember.objects.create(tournament=self.tournament, name=name))
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(
+            reverse('taikai:session_create', kwargs={'slug': 'view-test'}),
+            {
+                'member_0': members[0].pk,
+                'member_1': members[0].pk,
+                'member_2': members[1].pk,
+                'member_3': members[2].pk,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Each seat must have a different player')

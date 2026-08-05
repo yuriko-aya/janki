@@ -63,7 +63,7 @@
                 <dt style="font-weight: bold; color: #2c3e50; margin-top: 1rem;">Chombo Penalty</dt>
                 <dd style="margin-bottom: 1rem;">
                     {% if team.chombo_enabled %}
-                        <span style="background-color: #27ae60; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">Enabled (-30 pts)</span>
+                        <span style="background-color: #27ae60; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">Enabled ({{ team.chombo_penalty|floatformat:0 }} raw = -{{ team.chombo_penalty_points|floatformat:0 }} pts each)</span>
                     {% else %}
                         <span style="background-color: #95a5a6; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.85rem;">Disabled</span>
                     {% endif %}

@@ -2,11 +2,15 @@
 
 import random
 from collections import defaultdict
+from itertools import combinations
 
 from django.db import transaction
 from django.db.models import Max
 
 from taikai.models import Tournament, TournamentSession, TournamentSessionScore
+
+MAX_SCHEDULE_ATTEMPTS = 500
+MINIMIZE_SCHEDULE_ATTEMPTS = 300
 
 
 def is_session_scored(session):
@@ -30,21 +34,6 @@ def _pair_key(a_id, b_id):
     return (min(a_id, b_id), max(a_id, b_id))
 
 
-def _pick_table_greedy(remaining, pair_counts):
-    if len(remaining) < 4:
-        return remaining[:]
-    table = [remaining[0]]
-    pool = remaining[1:]
-    while len(table) < 4 and pool:
-        best = min(
-            pool,
-            key=lambda m: sum(pair_counts.get(_pair_key(m.id, t.id), 0) for t in table),
-        )
-        table.append(best)
-        pool.remove(best)
-    return table
-
-
 def _record_pairings(table, pair_counts):
     for i, a in enumerate(table):
         for b in table[i + 1:]:
@@ -52,20 +41,63 @@ def _record_pairings(table, pair_counts):
             pair_counts[key] = pair_counts.get(key, 0) + 1
 
 
-def _pair_counts_from_fixed_sessions(tournament):
-    pair_counts = defaultdict(int)
-    for session in tournament.sessions.filter(generation_type=TournamentSession.GenerationType.FIXED):
-        members = [s.member for s in session.scores.select_related('member')]
-        _record_pairings(members, pair_counts)
-    return pair_counts
+def _table_is_valid(table, pair_counts):
+    """True when no two players at this table have met before."""
+    for i, a in enumerate(table):
+        for b in table[i + 1:]:
+            if pair_counts.get(_pair_key(a.id, b.id), 0) > 0:
+                return False
+    return True
+
+
+def _partition_into_tables(remaining, pair_counts):
+    """Partition players into tables of 4 without repeat pairings."""
+    if not remaining:
+        return []
+    if len(remaining) < 4:
+        return None
+
+    first = remaining[0]
+    rest = remaining[1:]
+    for others in combinations(rest, 3):
+        table = [first] + list(others)
+        if _table_is_valid(table, pair_counts):
+            rest_after = [m for m in remaining if m not in table]
+            sub = _partition_into_tables(rest_after, pair_counts)
+            if sub is not None:
+                return [table] + sub
+    return None
+
+
+def _pick_table_minimize_repeats(remaining, pair_counts):
+    """Build one table, minimizing the highest repeat count at the table."""
+    if len(remaining) < 4:
+        return remaining[:]
+
+    table = [remaining[0]]
+    pool = remaining[1:]
+    while len(table) < 4 and pool:
+        def pairing_stats(member):
+            counts = [pair_counts.get(_pair_key(member.id, t.id), 0) for t in table]
+            return max(counts), sum(counts)
+
+        min_max = min(pairing_stats(m)[0] for m in pool)
+        candidates = [m for m in pool if pairing_stats(m)[0] == min_max]
+        min_sum = min(pairing_stats(m)[1] for m in candidates)
+        candidates = [m for m in pool if pairing_stats(m)[1] == min_sum]
+        choice = random.choice(candidates)
+        table.append(choice)
+        pool.remove(choice)
+    return table
 
 
 def _chunk_tables(members, pair_counts):
+    """Partition one hanchan into tables, avoiding repeat pairings when possible."""
     remaining = list(members)
     random.shuffle(remaining)
     tables = []
     while len(remaining) >= 4:
-        table = _pick_table_greedy(remaining, pair_counts)
+        table = _pick_table_minimize_repeats(remaining, pair_counts)
         if len(table) < 4:
             break
         for m in table:
@@ -73,6 +105,60 @@ def _chunk_tables(members, pair_counts):
         _record_pairings(table, pair_counts)
         tables.append(table)
     return tables
+
+
+def _build_greedy_schedule(members, hanchan_count):
+    """Build a full schedule using repeat-minimizing greedy table assignment."""
+    pair_counts = defaultdict(int)
+    schedule = []
+    for _h in range(hanchan_count):
+        schedule.append(_chunk_tables(members, pair_counts))
+    return schedule, pair_counts
+
+
+def _schedule_quality(pair_counts):
+    if not pair_counts:
+        return (0, 0)
+    counts = list(pair_counts.values())
+    return max(counts), sum(value * value for value in counts)
+
+
+def _schedule_hanchans_no_repeats(members, hanchan_count):
+    """
+    Build a full fixed schedule where no two players meet more than once.
+    Returns list[hanchan][table][member] or None if not found.
+    """
+    for _ in range(MAX_SCHEDULE_ATTEMPTS):
+        pair_counts = defaultdict(int)
+        schedule = []
+        for _h in range(hanchan_count):
+            order = list(members)
+            random.shuffle(order)
+            tables = _partition_into_tables(order, pair_counts)
+            if not tables:
+                break
+            for table in tables:
+                _record_pairings(table, pair_counts)
+            schedule.append(tables)
+        else:
+            return schedule
+    return None
+
+
+def _schedule_hanchans_minimize_repeats(members, hanchan_count):
+    """Fallback schedule when zero-repeat pairings are impossible."""
+    attempts = max(MINIMIZE_SCHEDULE_ATTEMPTS, hanchan_count * 30)
+    best_schedule = None
+    best_quality = None
+
+    for _ in range(attempts):
+        schedule, pair_counts = _build_greedy_schedule(members, hanchan_count)
+        quality = _schedule_quality(pair_counts)
+        if best_quality is None or quality < best_quality:
+            best_quality = quality
+            best_schedule = schedule
+
+    return best_schedule or _build_greedy_schedule(members, hanchan_count)[0]
 
 
 def _rank_tables(members, standings):
@@ -125,12 +211,14 @@ def generate_fixed_sessions(tournament):
     from taikai.services.calculator import reset_tournament_standings
     reset_tournament_standings(tournament)
 
-    pair_counts = defaultdict(int)
+    schedule = _schedule_hanchans_no_repeats(members, tournament.fixed_hanchan_count)
+    if schedule is None:
+        schedule = _schedule_hanchans_minimize_repeats(members, tournament.fixed_hanchan_count)
+
     order_index = 0
     sessions_created = 0
 
-    for hanchan_idx in range(1, tournament.fixed_hanchan_count + 1):
-        tables = _chunk_tables(members, pair_counts)
+    for hanchan_idx, tables in enumerate(schedule, start=1):
         if not tables:
             break
         for table_num, table_members in enumerate(tables, start=1):
@@ -246,3 +334,40 @@ def generate_next_rank_hanchan(tournament):
     tournament.sessions_generated = True
     tournament.save(update_fields=['sessions_generated', 'updated_at'])
     return sessions_created
+
+
+@transaction.atomic
+def create_manual_session(tournament, member_ids):
+    """Create one manually assigned session with four selected players."""
+    from taikai.models import TournamentMember
+
+    members = list(
+        TournamentMember.objects.filter(id__in=member_ids, tournament=tournament)
+    )
+    if len(members) != 4:
+        raise ValueError('Exactly 4 distinct players are required.')
+
+    max_h = _max_hanchan_number(tournament)
+    if max_h is None:
+        hanchan_number, table_number = 1, 1
+    else:
+        hanchan_number = max_h
+        max_table = (
+            tournament.sessions.filter(hanchan_number=hanchan_number)
+            .aggregate(m=Max('table_number'))['m']
+            or 0
+        )
+        table_number = max_table + 1
+
+    order_index = _next_order_index(tournament)
+    session = _create_session(
+        tournament,
+        hanchan_number=hanchan_number,
+        table_number=table_number,
+        generation_type=TournamentSession.GenerationType.MANUAL,
+        table_members=members,
+        order_index=order_index,
+    )
+    tournament.sessions_generated = True
+    tournament.save(update_fields=['sessions_generated', 'updated_at'])
+    return session
