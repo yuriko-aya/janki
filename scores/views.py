@@ -9,6 +9,7 @@ from datetime import datetime, date
 from scores.models import RawScore, CalculatedScore
 from scores.forms import RawScoreForm, SessionScoresForm, SessionEditForm
 from scores.services.calculator import (
+    get_chombo_penalty_points,
     validate_session_complete,
     submit_session_scores,
     update_session_scores,
@@ -262,7 +263,7 @@ class SessionsView(TeamSlugMixin, TeamContextMixin, DetailView):
                 # Calculate final score
                 calculated = base_score + uma
                 if raw_score.chombo > 0 and self.team.chombo_enabled:
-                    calculated -= (30 * raw_score.chombo)
+                    calculated -= get_chombo_penalty_points(self.team, raw_score.chombo)
                 
                 session_data['scores'].append({
                     'member_name': raw_score.member.name,

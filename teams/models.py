@@ -22,7 +22,11 @@ class Team(models.Model):
     uma_fourth = models.IntegerField(default=-15, help_text='Uma bonus for 4th place')
     
     # Chombo (bankruptcy) configuration
-    chombo_enabled = models.BooleanField(default=True, help_text='Enable chombo penalty (-30 points)')
+    chombo_enabled = models.BooleanField(default=True, help_text='Enable chombo penalty')
+    chombo_penalty = models.IntegerField(
+        default=30000,
+        help_text='Raw score penalty per chombo (default 30000 = -30 pts after ÷1000)',
+    )
     
     # Visibility
     hidden = models.BooleanField(default=False, db_index=True, help_text='Hide team from public team list')
@@ -38,6 +42,11 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def chombo_penalty_points(self):
+        """Calculated penalty points per chombo (raw penalty ÷ 1000)."""
+        return self.chombo_penalty / 1000.0
 
     def save(self, *args, **kwargs):
         if not self.slug:

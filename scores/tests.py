@@ -299,4 +299,20 @@ class TieHandlingTestCase(TestCase):
         self.assertAlmostEqual(bob_details['calculated_score'], -55.0, places=1)
         self.assertAlmostEqual(diana_details['calculated_score'], -65.0, places=1)
 
+    def test_custom_chombo_penalty_value(self):
+        """Chombo penalty uses configurable raw score value."""
+        self.team.chombo_penalty = 20000
+        self.team.save(update_fields=['chombo_penalty'])
+
+        score_data = [
+            {'member_id': self.alice.id, 'score': 35000, 'chombo': 0},
+            {'member_id': self.bob.id, 'score': 30000, 'chombo': 1},
+            {'member_id': self.charlie.id, 'score': 25000, 'chombo': 0},
+            {'member_id': self.diana.id, 'score': 10000, 'chombo': 0},
+        ]
+        submit_session_scores('session-custom-chombo', self.team, score_data)
+
+        bob_calc = CalculatedScore.objects.get(member=self.bob)
+        # (30000-30000)/1000 + 5 - (20000/1000) = 5 - 20 = -15
+        self.assertAlmostEqual(bob_calc.total, -15.0, places=1)
 

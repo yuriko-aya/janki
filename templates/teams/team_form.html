@@ -128,10 +128,24 @@
                     {{ form.chombo_enabled }}
                     {{ form.chombo_enabled.label_tag }}
                 </div>
-                <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 0.5rem;">When enabled, players marked with chombo receive a -30 point penalty.</p>
+                <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 0.5rem;">When enabled, each chombo applies the penalty below (raw score, divided by 1000 for final points).</p>
                 {% if form.chombo_enabled.errors %}
                     <div style="color: #e74c3c; margin-top: 0.5rem;">
                         {% for error in form.chombo_enabled.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                {{ form.chombo_penalty.label_tag }}
+                {{ form.chombo_penalty }}
+                {% if form.chombo_penalty.help_text %}
+                    <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 0.5rem;">{{ form.chombo_penalty.help_text }}</p>
+                {% endif %}
+                {% if form.chombo_penalty.errors %}
+                    <div style="color: #e74c3c; margin-top: 0.5rem;">
+                        {% for error in form.chombo_penalty.errors %}
                             <p>{{ error }}</p>
                         {% endfor %}
                     </div>
