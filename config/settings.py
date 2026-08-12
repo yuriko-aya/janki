@@ -194,7 +194,7 @@ PASSWORD_RESET_TIMEOUT_HOURS = env.int('PASSWORD_RESET_TIMEOUT_HOURS', default=1
 
 # django-allauth (local signup uses custom views; OAuth via social accounts)
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-LOGIN_REDIRECT_URL = '/teams/'
+LOGIN_REDIRECT_URL = '/'
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.SocialAccountAdapter'
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True

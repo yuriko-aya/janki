@@ -113,8 +113,9 @@ class LoginTestCase(TestCase):
         response = self.client.post(self.login_url, {
             'username': 'active',
             'password': 'pass',
+            'turnstile_token': 'test-token',
         })
-        self.assertRedirects(response, reverse('teams:team_list'))
+        self.assertRedirects(response, reverse('home'))
         self.assertIn('_auth_user_id', self.client.session)
 
     def test_inactive_user_cannot_login(self):
@@ -260,7 +261,7 @@ class LoginWithEmailTestCase(TestCase):
             'password': 'goodpass',
             'turnstile_token': 'test-token',
         })
-        self.assertRedirects(response, reverse('teams:team_list'))
+        self.assertRedirects(response, reverse('home'))
         self.assertIn('_auth_user_id', self.client.session)
 
 
