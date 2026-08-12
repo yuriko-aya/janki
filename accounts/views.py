@@ -124,7 +124,7 @@ class LoginView(FormView):
     """User login with Turnstile protection."""
     template_name = 'accounts/login.html'
     form_class = LoginForm
-    success_url = reverse_lazy('teams:team_list')
+    success_url = reverse_lazy('home')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -276,4 +276,4 @@ def logout_view(request):
     """User logout."""
     logout(request)
     messages.success(request, 'You have been logged out.')
-    return redirect('teams:team_list')
+    return redirect('home')
