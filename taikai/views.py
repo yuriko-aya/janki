@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -14,6 +15,7 @@ from taikai.forms import (
     GenerateSessionsForm,
     ManualSessionForm,
     TournamentSessionScoreForm,
+    AddTournamentAdminForm,
 )
 from taikai.mixins import (
     TournamentAdminRequiredMixin,
@@ -337,3 +339,64 @@ class TournamentSessionEditView(TournamentAdminRequiredMixin, TournamentContextM
             return self.form_invalid(form)
         messages.success(self.request, f'Scores updated for {self.session.name}.')
         return redirect('taikai:session_list', slug=self.tournament.slug)
+
+
+class TournamentAdminListView(TournamentAdminRequiredMixin, DetailView):
+    """Display all admins of a tournament and allow adding/removing admins."""
+    model = Tournament
+    template_name = 'taikai/tournament_admin_list.html'
+    context_object_name = 'tournament'
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tournament_admins'] = self.tournament.admins.all().select_related('user')
+        context['form'] = AddTournamentAdminForm(tournament=self.tournament)
+        return context
+
+
+class AddTournamentAdminView(TournamentAdminRequiredMixin, FormView):
+    """Add a new admin to a tournament."""
+    form_class = AddTournamentAdminForm
+    template_name = 'taikai/tournament_admin_list.html'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['tournament'] = self.tournament
+        return kwargs
+
+    def form_valid(self, form):
+        username = form.cleaned_data['username']
+        user = User.objects.get(username=username)
+        TournamentAdmin.objects.create(tournament=self.tournament, user=user)
+        messages.success(self.request, f"User '{username}' has been added as a tournament admin.")
+        return redirect('taikai:admin_list', slug=self.tournament.slug)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Error adding admin. Please check the form.")
+        return redirect('taikai:admin_list', slug=self.tournament.slug)
+
+
+class RemoveTournamentAdminView(LoginRequiredMixin, DeleteView):
+    """Remove an admin from a tournament."""
+    model = TournamentAdmin
+    template_name = 'taikai/tournament_admin_confirm_delete.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        tournament_admin = self.get_object()
+        tournament = tournament_admin.tournament
+
+        if not tournament.is_admin(request.user):
+            raise PermissionDenied('You do not have permission to manage this tournament.')
+
+        if tournament.admins.count() <= 1:
+            messages.error(request, 'Cannot remove the last admin from the tournament.')
+            return redirect('taikai:admin_list', slug=tournament.slug)
+
+        self.tournament_slug = tournament.slug
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        messages.success(self.request, 'Admin removed successfully.')
+        return reverse_lazy('taikai:admin_list', kwargs={'slug': self.tournament_slug})

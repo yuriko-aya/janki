@@ -14,6 +14,7 @@
         <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #9b59b6;">Sessions</a>
         {% if is_tournament_admin %}
             <a href="{% url 'taikai:member_list' slug=tournament.slug %}" class="btn">Members</a>
+            <a href="{% url 'taikai:admin_list' slug=tournament.slug %}" class="btn" style="background-color: #8e44ad;">Manage Admins</a>
             <a href="{% url 'taikai:tournament_update' slug=tournament.slug %}" class="btn" style="background-color: #f39c12;">Edit</a>
         {% endif %}
     </div>
