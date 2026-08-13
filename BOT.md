@@ -2,9 +2,9 @@
 
 ## Regiter Bot to Server
 
-- Register janki account [https://janki.yuriko-aya.cc/accounts/register/](https://janki.yuriko-aya.cc/accounts/register/)
-- Create Team [https://janki.yuriko-aya.cc/teams/create/](https://janki.yuriko-aya.cc/teams/create/)
-- Add discord bot to channel [https://janki.yuriko-aya.cc/discord-bot](https://janki.yuriko-aya.cc/discord-bot)
+- Register janki account [https://janki.cc/accounts/register/](https://janki.cc/accounts/register/)
+- Create Team [https://janki.cc/teams/create/](https://janki.cc/teams/create/)
+- Add discord bot to channel [https://janki.cc/discord-bot](https://janki.cc/discord-bot)
 
 ## Commands
 
@@ -70,7 +70,7 @@ A message must contain at least 4 valid player lines to be submitted. Sessions a
 ❌ Score recording failed (status 400): {"success":false,"errors":{"scores":[{},{},{},{"member_name":["Member 'Farras' does not exist in team Semarang Riichi Guild"]}]}}
 ✅ Session 2026-04-18 11:11: Amy (19900), Rudy (27700), Shien (35700), Sun (36700) has been recorded successfully.
 ❌ Score recording failed (status 409): {"error":"Session 2026-04-11 11:50 already exists. Use PUT to update.","existing_scores":4}
-✅ All new scores have been recorded. You can see the updated leaderboard here: https://janki.yuriko-aya.cc/scores/semarang-riichi-guild/standings/
+✅ All new scores have been recorded. You can see the updated leaderboard here: https://janki.cc/scores/semarang-riichi-guild/standings/
 ```
 
 ![Screenshot](https://imagine.yuriko-aya.cc/img/066e401adab7144668c1ec9f59ea61af.png)
