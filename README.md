@@ -14,7 +14,7 @@ A Django web application for tracking Mahjong scores across teams and tournament
 - **Session archiving**: Exclude old sessions from standings while keeping history
 - **Player profiles**: Link members to global player accounts for cross-team stats
 
-### Tournaments (Taikai)
+### Tournaments
 - **One-off events**: Fixed, rank-based, or hybrid session modes
 - **Auto-generated pairings**: Fixed hanchans with repeat-pairing minimization
 - **Rank hanchans**: Swiss-style rounds added one at a time after scores are entered
@@ -283,7 +283,7 @@ Total = 5.0 + 15 = +20.0 points
 - `user`: ForeignKey to Django User
 - `team`: ManyToManyField to Team (a user can admin multiple teams)
 
-### Tournament (Taikai)
+### Tournament
 - Same scoring fields as Team (`target_point`, Uma, `chombo_enabled`, `chombo_penalty`, …)
 - `session_mode`: `fixed`, `rank`, or `hybrid`
 - `fixed_hanchan_count`: Number of fixed hanchans (fixed/hybrid modes)
