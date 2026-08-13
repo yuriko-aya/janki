@@ -16,12 +16,21 @@ class TournamentSlugMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class TournamentAdminRequiredMixin(LoginRequiredMixin, TournamentSlugMixin):
+class TournamentAdminRequiredMixin(TournamentSlugMixin, LoginRequiredMixin):
+    def handle_no_permission(self):
+        raise PermissionDenied('You must be logged in to access this page.')
+
     def dispatch(self, request, *args, **kwargs):
-        response = super().dispatch(request, *args, **kwargs)
+        slug_param = self.kwargs.get('tournament_slug') or self.kwargs.get('slug')
+        self.tournament = get_object_or_404(Tournament, slug=slug_param)
+
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
         if not self.tournament.is_admin(request.user):
             raise PermissionDenied('You do not have permission to manage this tournament.')
-        return response
+
+        return super(TournamentSlugMixin, self).dispatch(request, *args, **kwargs)
 
 
 class TournamentContextMixin:

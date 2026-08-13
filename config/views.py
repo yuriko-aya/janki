@@ -1,5 +1,6 @@
 import markdown
 from django.conf import settings
+from django.shortcuts import render
 from django.views.generic import TemplateView
 
 
@@ -27,3 +28,7 @@ class TermsOfServiceView(TemplateView):
 
 class HomePageView(TemplateView):
     template_name = "home.html"
+
+
+def permission_denied(request, exception):
+    return render(request, '403.html', {'exception': exception}, status=403)

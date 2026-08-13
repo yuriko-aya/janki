@@ -25,21 +25,26 @@ class TeamSlugMixin:
         return self.team
 
 
-class TeamAdminRequiredMixin(LoginRequiredMixin, TeamSlugMixin):
+class TeamAdminRequiredMixin(TeamSlugMixin, LoginRequiredMixin):
     """
     Ensure user is authenticated and is an admin of the team being accessed.
-    Automatically gets team from URL slug and checks admin permission.
+    Checks run before the view so unauthorized users never reach view logic.
     """
-    
+
+    def handle_no_permission(self):
+        raise PermissionDenied("You must be logged in to access this page.")
+
     def dispatch(self, request, *args, **kwargs):
-        # Get team from slug first (TeamSlugMixin)
-        response = super().dispatch(request, *args, **kwargs)
-        
-        # Check if user is admin of this team
+        slug_param = self.kwargs.get('team_slug') or self.kwargs.get('slug')
+        self.team = get_object_or_404(Team, slug=slug_param)
+
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
         if not self.team.is_admin(request.user):
             raise PermissionDenied("You do not have permission to manage this team.")
-        
-        return response
+
+        return super(TeamSlugMixin, self).dispatch(request, *args, **kwargs)
 
 
 class TeamContextMixin:
