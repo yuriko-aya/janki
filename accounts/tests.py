@@ -118,6 +118,35 @@ class LoginTestCase(TestCase):
         self.assertRedirects(response, reverse('home'))
         self.assertIn('_auth_user_id', self.client.session)
 
+    def test_login_redirects_to_next_url(self):
+        """Login honors a safe next parameter after authentication."""
+        from teams.models import Team
+        team = Team.objects.create(name='Next Team', slug='next-team')
+        next_url = reverse('teams:team_detail', kwargs={'slug': team.slug})
+        response = self.client.post(
+            f'{self.login_url}?next={next_url}',
+            {
+                'username': 'active',
+                'password': 'pass',
+                'turnstile_token': 'test-token',
+                'next': next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+
+    def test_login_rejects_unsafe_next_url(self):
+        """External next URLs fall back to the home page."""
+        response = self.client.post(
+            self.login_url,
+            {
+                'username': 'active',
+                'password': 'pass',
+                'turnstile_token': 'test-token',
+                'next': 'https://evil.example.com/phish',
+            },
+        )
+        self.assertRedirects(response, reverse('home'))
+
     def test_inactive_user_cannot_login(self):
         """An unverified (inactive) user is rejected at login."""
         response = self.client.post(self.login_url, {

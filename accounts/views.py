@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import FormView, View, TemplateView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -129,7 +130,18 @@ class LoginView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['turnstile_site_key'] = settings.TURNSTILE_SITE_KEY
+        context['next'] = self.request.POST.get('next') or self.request.GET.get('next', '')
         return context
+
+    def get_success_url(self):
+        redirect_to = self.request.POST.get('next') or self.request.GET.get('next')
+        if redirect_to and url_has_allowed_host_and_scheme(
+            redirect_to,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        ):
+            return redirect_to
+        return reverse('home')
 
     def form_valid(self, form):
         username_or_email = form.cleaned_data['username']
