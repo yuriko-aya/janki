@@ -395,3 +395,45 @@ class TournamentViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Each seat must have a different player')
+
+
+class TournamentAdminManagementTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user(username='admin', email='admin@example.com', password='pass')
+        self.other = User.objects.create_user(username='other', email='other@example.com', password='pass')
+        self.tournament = Tournament.objects.create(name='Admin Test', slug='admin-test')
+        self.tournament_admin = TournamentAdmin.objects.create(user=self.admin, tournament=self.tournament)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_admin_list_requires_admin(self):
+        self.client.login(username='other', password='pass')
+        response = self.client.get(reverse('taikai:admin_list', kwargs={'slug': 'admin-test'}))
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_add_admin(self):
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(
+            reverse('taikai:admin_add', kwargs={'slug': 'admin-test'}),
+            {'username': 'other'},
+        )
+        self.assertRedirects(response, reverse('taikai:admin_list', kwargs={'slug': 'admin-test'}))
+        self.assertTrue(self.tournament.admins.filter(user=self.other).exists())
+
+    @override_settings(STORAGES=_test_storages)
+    def test_cannot_remove_last_admin(self):
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(
+            reverse('taikai:admin_remove', kwargs={'pk': self.tournament_admin.pk}),
+        )
+        self.assertRedirects(response, reverse('taikai:admin_list', kwargs={'slug': 'admin-test'}))
+        self.assertTrue(self.tournament.admins.filter(user=self.admin).exists())
+
+    @override_settings(STORAGES=_test_storages)
+    def test_remove_admin(self):
+        extra = TournamentAdmin.objects.create(user=self.other, tournament=self.tournament)
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(reverse('taikai:admin_remove', kwargs={'pk': extra.pk}))
+        self.assertRedirects(response, reverse('taikai:admin_list', kwargs={'slug': 'admin-test'}))
+        self.assertFalse(self.tournament.admins.filter(user=self.other).exists())

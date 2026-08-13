@@ -48,16 +48,17 @@ class SessionScoresForm(forms.Form):
                 }),
                 label=f'Score {i + 1}'
             )
-            self.fields[f'chombo_{i}'] = forms.IntegerField(
-                required=False,
-                initial=0,
-                widget=forms.NumberInput(attrs={
-                    'class': 'form-control',
-                    'min': '0',
-                    'value': '0',
-                }),
-                label=f'Chombo Count (Player {i + 1})'
-            )
+            if team.chombo_enabled:
+                self.fields[f'chombo_{i}'] = forms.IntegerField(
+                    required=False,
+                    initial=0,
+                    widget=forms.NumberInput(attrs={
+                        'class': 'form-control',
+                        'min': '0',
+                        'value': '0',
+                    }),
+                    label=f'Chombo Count (Player {i + 1})'
+                )
 
 
 class SessionEditForm(SessionScoresForm):

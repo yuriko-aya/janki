@@ -118,6 +118,41 @@ class ManualSessionForm(forms.Form):
         return [int(self.cleaned_data[f'member_{i}']) for i in range(self.seat_count)]
 
 
+class AddTournamentAdminForm(forms.Form):
+    """Form for adding a new admin to a tournament."""
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter username to add as admin',
+        }),
+        help_text='Enter the username of the user you want to add as a tournament admin.',
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.tournament = kwargs.pop('tournament', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_username(self):
+        from django.contrib.auth.models import User
+        from taikai.models import TournamentAdmin
+
+        username = self.cleaned_data.get('username')
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise forms.ValidationError(f"User '{username}' does not exist.")
+
+        if self.tournament and TournamentAdmin.objects.filter(
+            tournament=self.tournament, user=user
+        ).exists():
+            raise forms.ValidationError(
+                f"User '{username}' is already an admin of this tournament."
+            )
+
+        return username
+
+
 class TournamentSessionScoreForm(forms.Form):
     """Dynamic form for 4 seats: player selection, raw score, and chombo."""
 
@@ -139,12 +174,13 @@ class TournamentSessionScoreForm(forms.Form):
                 label=f'Seat {i + 1} — Raw score',
                 widget=forms.NumberInput(attrs={'class': 'form-control'}),
             )
-            self.fields[f'chombo_{i}'] = forms.IntegerField(
-                initial=score_obj.chombo,
-                required=False,
-                label=f'Seat {i + 1} — Chombo',
-                widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
-            )
+            if session.tournament.chombo_enabled:
+                self.fields[f'chombo_{i}'] = forms.IntegerField(
+                    initial=score_obj.chombo,
+                    required=False,
+                    label=f'Seat {i + 1} — Chombo',
+                    widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+                )
 
     def clean(self):
         cleaned = super().clean()
