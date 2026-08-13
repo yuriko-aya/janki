@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Access Denied - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 3rem auto;">
+    <div style="background-color: white; padding: 2rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #e74c3c;">
+        <h1 style="margin-top: 0; color: #e74c3c;">403 — Access Denied</h1>
+
+        {% if user.is_authenticated %}
+            <h2 style="font-size: 1.15rem; color: #2c3e50; margin-bottom: 0.75rem;">Administrator access required</h2>
+            <p style="font-size: 1.05rem; color: #2c3e50; margin-bottom: 1rem;">
+                {% if exception %}
+                    {{ exception }}
+                {% else %}
+                    You do not have permission to access this page.
+                {% endif %}
+            </p>
+            <p style="color: #666; margin-bottom: 1.5rem;">
+                You are signed in as <strong>{{ user.get_full_name|default:user.username }}</strong>
+                (<span style="font-family: monospace;">@{{ user.username }}</span>).
+                This page is limited to team or tournament administrators.
+            </p>
+
+            <div style="padding: 1rem 1.25rem; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 1.5rem;">
+                <p style="margin: 0 0 0.75rem 0; font-weight: bold; color: #856404;">What you can do</p>
+                <ul style="margin: 0; padding-left: 1.25rem; color: #856404; font-size: 0.95rem;">
+                    <li>Ask an existing admin to add your account as an administrator</li>
+                    <li>Return to a public team or tournament page you can view</li>
+                    <li>Sign in with a different account if you have admin access elsewhere</li>
+                </ul>
+            </div>
+        {% else %}
+            <h2 style="font-size: 1.15rem; color: #2c3e50; margin-bottom: 0.75rem;">Sign in required</h2>
+            <p style="font-size: 1.05rem; color: #2c3e50; margin-bottom: 1rem;">
+                {% if exception %}
+                    {{ exception }}
+                {% else %}
+                    You do not have permission to access this page.
+                {% endif %}
+            </p>
+
+            <div style="padding: 1rem 1.25rem; background-color: #f8f9fa; border-radius: 4px; margin-bottom: 1.5rem;">
+                <p style="margin: 0; color: #666; font-size: 0.95rem;">
+                    Log in with an administrator account to manage teams, members, or tournament sessions.
+                </p>
+            </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{% url 'home' %}" class="btn">Back to Home</a>
+            <a href="{% url 'teams:team_list' %}" class="btn" style="background-color: #95a5a6;">Browse Teams</a>
+            <a href="{% url 'taikai:tournament_list' %}" class="btn" style="background-color: #95a5a6;">Browse Tournaments</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'accounts:logout' %}" class="btn" style="background-color: #3498db;">Sign Out</a>
+            {% else %}
+                <a href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}" class="btn" style="background-color: #3498db;">Log In</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

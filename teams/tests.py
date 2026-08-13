@@ -171,3 +171,40 @@ class PlayerUserLinkTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.player.refresh_from_db()
         self.assertEqual(self.player.user, self.other_user)
+
+
+class TeamAdminAccessTestCase(TestCase):
+    _test_storages = _test_storages
+
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user(username='admin', password='pass')
+        self.other = User.objects.create_user(username='other', password='pass')
+        self.team = Team.objects.create(name='Access Team', slug='access-team')
+        TeamAdmin.objects.create(user=self.admin, team=self.team)
+        self.members_url = reverse('teams:member_list', kwargs={'slug': self.team.slug})
+
+    @override_settings(STORAGES=_test_storages)
+    def test_logged_out_member_list_returns_403(self):
+        response = self.client.get(self.members_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, '403 — Access Denied', status_code=403)
+        self.assertContains(response, 'You must be logged in to access this page.', status_code=403)
+        self.assertContains(response, 'Sign in required', status_code=403)
+        self.assertContains(response, 'Log In', status_code=403)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_non_admin_member_list_returns_403(self):
+        self.client.login(username='other', password='pass')
+        response = self.client.get(self.members_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, 'You do not have permission to manage this team.', status_code=403)
+        self.assertContains(response, 'Administrator access required', status_code=403)
+        self.assertContains(response, '@other', status_code=403)
+        self.assertContains(response, 'Sign Out', status_code=403)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_admin_member_list_allowed(self):
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(self.members_url)
+        self.assertEqual(response.status_code, 200)

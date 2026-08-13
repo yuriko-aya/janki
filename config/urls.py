@@ -55,6 +55,8 @@ urlpatterns = [
     path('api/', include('scores.api_urls')),
 ]
 
+handler403 = 'config.views.permission_denied'
+
 # Serve static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
