@@ -11,6 +11,32 @@ from taikai.models import Tournament, TournamentSession, TournamentSessionScore
 
 MAX_SCHEDULE_ATTEMPTS = 500
 MINIMIZE_SCHEDULE_ATTEMPTS = 300
+MINIMIZE_SCHEDULE_ATTEMPTS_FAST = 100
+MINIMIZE_SCHEDULE_ATTEMPTS_CAP = 200
+MINIMIZE_SCHEDULE_ATTEMPTS_HARD_CAP = 800
+
+
+def _max_zero_repeat_hanchans(player_count):
+    """Each player meets 3 opponents per hanchan; at most n-1 unique opponents."""
+    if player_count < 4:
+        return 0
+    return (player_count - 1) // 3
+
+
+def _zero_repeat_schedule_feasible(player_count, hanchan_count):
+    return hanchan_count <= _max_zero_repeat_hanchans(player_count)
+
+
+def _minimize_schedule_attempts(player_count, hanchan_count):
+    """Fewer retries when zero-repeat pairings are impossible (greedy converges quickly)."""
+    if not _zero_repeat_schedule_feasible(player_count, hanchan_count):
+        if hanchan_count >= 20:
+            return max(
+                MINIMIZE_SCHEDULE_ATTEMPTS_FAST,
+                min(MINIMIZE_SCHEDULE_ATTEMPTS_CAP, hanchan_count * 5),
+            )
+        return max(MINIMIZE_SCHEDULE_ATTEMPTS, hanchan_count * 30)
+    return max(MINIMIZE_SCHEDULE_ATTEMPTS, hanchan_count * 30)
 
 
 def is_session_scored(session):
@@ -77,14 +103,15 @@ def _pick_table_minimize_repeats(remaining, pair_counts):
     table = [remaining[0]]
     pool = remaining[1:]
     while len(table) < 4 and pool:
-        def pairing_stats(member):
+        stats = {}
+        for member in pool:
             counts = [pair_counts.get(_pair_key(member.id, t.id), 0) for t in table]
-            return max(counts), sum(counts)
+            stats[member.id] = (max(counts), sum(counts))
 
-        min_max = min(pairing_stats(m)[0] for m in pool)
-        candidates = [m for m in pool if pairing_stats(m)[0] == min_max]
-        min_sum = min(pairing_stats(m)[1] for m in candidates)
-        candidates = [m for m in pool if pairing_stats(m)[1] == min_sum]
+        min_max = min(stats[m.id][0] for m in pool)
+        candidates = [m for m in pool if stats[m.id][0] == min_max]
+        min_sum = min(stats[m.id][1] for m in candidates)
+        candidates = [m for m in pool if stats[m.id][1] == min_sum]
         choice = random.choice(candidates)
         table.append(choice)
         pool.remove(choice)
@@ -145,18 +172,34 @@ def _schedule_hanchans_no_repeats(members, hanchan_count):
     return None
 
 
+def _target_max_repeat(player_count, hanchan_count):
+    """Best possible max repeat count (each player meets 3 opponents per hanchan)."""
+    if player_count < 2:
+        return 0
+    return -(-(3 * hanchan_count) // (player_count - 1))
+
+
 def _schedule_hanchans_minimize_repeats(members, hanchan_count):
     """Fallback schedule when zero-repeat pairings are impossible."""
-    attempts = max(MINIMIZE_SCHEDULE_ATTEMPTS, hanchan_count * 30)
+    player_count = len(members)
+    attempts = _minimize_schedule_attempts(player_count, hanchan_count)
+    target_max_repeat = _target_max_repeat(player_count, hanchan_count)
+    max_attempts = (
+        attempts
+        if hanchan_count >= 20
+        else min(MINIMIZE_SCHEDULE_ATTEMPTS_HARD_CAP, attempts * 3)
+    )
     best_schedule = None
     best_quality = None
 
-    for _ in range(attempts):
+    for _ in range(max_attempts):
         schedule, pair_counts = _build_greedy_schedule(members, hanchan_count)
         quality = _schedule_quality(pair_counts)
         if best_quality is None or quality < best_quality:
             best_quality = quality
             best_schedule = schedule
+            if quality[0] <= target_max_repeat:
+                break
 
     return best_schedule or _build_greedy_schedule(members, hanchan_count)[0]
 
@@ -188,6 +231,48 @@ def _create_session(tournament, hanchan_number, table_number, generation_type, t
     return session
 
 
+def _bulk_create_sessions(tournament, schedule, generation_type):
+    """Create all sessions and scores in two bulk inserts."""
+    session_rows = []
+    table_members_list = []
+    order_index = 0
+
+    for hanchan_idx, tables in enumerate(schedule, start=1):
+        if not tables:
+            break
+        for table_num, table_members in enumerate(tables, start=1):
+            session_rows.append(
+                TournamentSession(
+                    tournament=tournament,
+                    name=f"Hanchan {hanchan_idx} Table {table_num}",
+                    hanchan_number=hanchan_idx,
+                    table_number=table_num,
+                    generation_type=generation_type,
+                    order_index=order_index,
+                )
+            )
+            table_members_list.append(table_members)
+            order_index += 1
+
+    if not session_rows:
+        return 0
+
+    sessions = TournamentSession.objects.bulk_create(session_rows)
+    score_rows = []
+    for session, table_members in zip(sessions, table_members_list):
+        for member in table_members:
+            score_rows.append(
+                TournamentSessionScore(
+                    session=session,
+                    member=member,
+                    score=0,
+                    chombo=0,
+                )
+            )
+    TournamentSessionScore.objects.bulk_create(score_rows)
+    return len(sessions)
+
+
 def _next_order_index(tournament):
     last = tournament.sessions.order_by('-order_index').first()
     return (last.order_index + 1) if last else 0
@@ -211,27 +296,20 @@ def generate_fixed_sessions(tournament):
     from taikai.services.calculator import reset_tournament_standings
     reset_tournament_standings(tournament)
 
-    schedule = _schedule_hanchans_no_repeats(members, tournament.fixed_hanchan_count)
+    player_count = len(members)
+    hanchan_count = tournament.fixed_hanchan_count
+    if _zero_repeat_schedule_feasible(player_count, hanchan_count):
+        schedule = _schedule_hanchans_no_repeats(members, hanchan_count)
+    else:
+        schedule = None
     if schedule is None:
-        schedule = _schedule_hanchans_minimize_repeats(members, tournament.fixed_hanchan_count)
+        schedule = _schedule_hanchans_minimize_repeats(members, hanchan_count)
 
-    order_index = 0
-    sessions_created = 0
-
-    for hanchan_idx, tables in enumerate(schedule, start=1):
-        if not tables:
-            break
-        for table_num, table_members in enumerate(tables, start=1):
-            _create_session(
-                tournament,
-                hanchan_number=hanchan_idx,
-                table_number=table_num,
-                generation_type=TournamentSession.GenerationType.FIXED,
-                table_members=table_members,
-                order_index=order_index,
-            )
-            order_index += 1
-            sessions_created += 1
+    sessions_created = _bulk_create_sessions(
+        tournament,
+        schedule,
+        TournamentSession.GenerationType.FIXED,
+    )
 
     tournament.sessions_generated = sessions_created > 0
     tournament.save(update_fields=['sessions_generated', 'updated_at'])
