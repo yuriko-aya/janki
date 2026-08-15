@@ -72,10 +72,26 @@ class TournamentMemberForm(forms.ModelForm):
             'is_substitute': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        self.tournament = kwargs.pop('tournament', None)
+        if self.tournament is None and kwargs.get('instance') is not None:
+            self.tournament = kwargs['instance'].tournament
+        super().__init__(*args, **kwargs)
+
     def clean_name(self):
         name = self.cleaned_data.get('name', '')
         if ' ' in name:
             raise forms.ValidationError('Member name cannot contain spaces.')
+        tournament = self.tournament
+        if tournament is None and self.instance.pk:
+            tournament = self.instance.tournament
+        if tournament and TournamentMember.objects.filter(
+            tournament=tournament,
+            name=name,
+        ).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(
+                f'A member named "{name}" already exists in this tournament.'
+            )
         return name
 
 

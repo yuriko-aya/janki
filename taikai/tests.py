@@ -396,6 +396,18 @@ class TournamentViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Each seat must have a different player')
 
+    @override_settings(STORAGES=_test_storages)
+    def test_duplicate_member_name_shows_form_error(self):
+        TournamentMember.objects.create(tournament=self.tournament, name='Alice')
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(
+            reverse('taikai:member_create', kwargs={'slug': 'view-test'}),
+            {'name': 'Alice', 'display_name': ''},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'already exists in this tournament')
+        self.assertEqual(self.tournament.members.filter(name='Alice').count(), 1)
+
 
 class TournamentAdminManagementTestCase(TestCase):
     def setUp(self):

@@ -166,8 +166,17 @@ class TournamentMemberCreateView(TournamentAdminRequiredMixin, TournamentContext
     form_class = TournamentMemberForm
     template_name = 'taikai/member_form.html'
 
-    def form_valid(self, form):
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['tournament'] = self.tournament
+        return kwargs
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
         form.instance.tournament = self.tournament
+        return form
+
+    def form_valid(self, form):
         messages.success(self.request, f"Member '{form.instance.name}' added.")
         return super().form_valid(form)
 
@@ -191,6 +200,11 @@ class TournamentMemberUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['tournament'] = self.get_object().tournament
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['tournament'] = self.get_object().tournament
+        return kwargs
 
     def get_success_url(self):
         return reverse_lazy('taikai:member_list', kwargs={'slug': self.tournament_slug})
