@@ -449,3 +449,101 @@ class TournamentAdminManagementTestCase(TestCase):
         response = self.client.post(reverse('taikai:admin_remove', kwargs={'pk': extra.pk}))
         self.assertRedirects(response, reverse('taikai:admin_list', kwargs={'slug': 'admin-test'}))
         self.assertFalse(self.tournament.admins.filter(user=self.other).exists())
+
+
+class FinalsCutoffTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='admin', password='pass')
+        self.tournament = Tournament.objects.create(
+            name='Cutoff Test',
+            slug='cutoff-test',
+            session_mode=Tournament.SessionMode.HYBRID,
+            fixed_hanchan_count=1,
+        )
+        TournamentAdmin.objects.create(user=self.user, tournament=self.tournament)
+        self.members = []
+        for name in ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8']:
+            self.members.append(
+                TournamentMember.objects.create(tournament=self.tournament, name=name)
+            )
+
+    def _score_all_fixed(self):
+        generate_fixed_sessions(self.tournament)
+        for session in self.tournament.sessions.filter(hanchan_number=1):
+            _score_session(session, base=30000 + session.table_number * 1000)
+
+    def test_apply_cutoff_after_fixed_hanchans(self):
+        self._score_all_fixed()
+        from taikai.services.finals import apply_finals_cutoff
+
+        count = apply_finals_cutoff(self.tournament, 4)
+        self.assertEqual(count, 4)
+        self.tournament.refresh_from_db()
+        self.assertEqual(self.tournament.finals_cutoff, 4)
+        self.assertEqual(self.tournament.finals_members().count(), 4)
+
+    def test_cutoff_must_be_divisible_by_four(self):
+        self._score_all_fixed()
+        from taikai.services.finals import apply_finals_cutoff
+
+        with self.assertRaises(ValueError):
+            apply_finals_cutoff(self.tournament, 6)
+
+    def test_finals_standing_counts_only_finals_sessions(self):
+        self._score_all_fixed()
+        from taikai.services.finals import apply_finals_cutoff
+        from taikai.services.calculator import get_tournament_finals_standings
+
+        apply_finals_cutoff(self.tournament, 4)
+        finals_members = list(self.tournament.finals_members())
+        create_manual_session(
+            self.tournament,
+            [m.id for m in finals_members],
+        )
+        session = self.tournament.sessions.filter(generation_type=TournamentSession.GenerationType.MANUAL).first()
+        _score_session(session, base=35000)
+
+        finals_standings = get_tournament_finals_standings(self.tournament)
+        self.assertEqual(len(finals_standings), 4)
+        self.assertTrue(all(m.finals_total_score.games_played == 1 for m in finals_standings))
+
+    @override_settings(STORAGES=_test_storages)
+    def test_manual_session_form_limited_to_finals(self):
+        self._score_all_fixed()
+        from taikai.services.finals import apply_finals_cutoff
+
+        apply_finals_cutoff(self.tournament, 4)
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(
+            reverse('taikai:session_create', kwargs={'slug': 'cutoff-test'})
+        )
+        self.assertEqual(response.status_code, 200)
+        for member in self.tournament.standing_members().filter(in_finals=False):
+            self.assertNotContains(response, f'value="{member.id}"')
+        for member in self.tournament.finals_members():
+            self.assertContains(response, f'value="{member.id}"')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_apply_cutoff_via_session_list(self):
+        self._score_all_fixed()
+        self.client.login(username='admin', password='pass')
+        response = self.client.post(
+            reverse('taikai:apply_cutoff', kwargs={'slug': 'cutoff-test'}),
+            {'cutoff': 8},
+        )
+        self.assertRedirects(response, reverse('taikai:session_list', kwargs={'slug': 'cutoff-test'}))
+        self.tournament.refresh_from_db()
+        self.assertEqual(self.tournament.finals_cutoff, 8)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_tournament_detail_shows_finals_standings(self):
+        self._score_all_fixed()
+        from taikai.services.finals import apply_finals_cutoff
+
+        apply_finals_cutoff(self.tournament, 4)
+        response = self.client.get(
+            reverse('taikai:tournament_detail', kwargs={'slug': 'cutoff-test'})
+        )
+        self.assertContains(response, 'Finals Standings')
+        self.assertContains(response, 'Overall Standings')

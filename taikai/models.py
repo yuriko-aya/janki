@@ -35,6 +35,11 @@ class Tournament(models.Model):
         default=3,
         help_text='Number of fixed hanchans (used in fixed and hybrid modes only)',
     )
+    finals_cutoff = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Top N players in finals after cutoff is applied (must be divisible by 4)',
+    )
 
     hidden = models.BooleanField(default=False, db_index=True)
     sessions_generated = models.BooleanField(default=False)
@@ -80,6 +85,13 @@ class Tournament(models.Model):
     def uses_rank_hanchans(self):
         return self.session_mode in (self.SessionMode.RANK, self.SessionMode.HYBRID)
 
+    def has_finals_cutoff(self):
+        return self.finals_cutoff is not None
+
+    def finals_members(self):
+        """Regular members who qualified for the post-cutoff finals group."""
+        return self.standing_members().filter(in_finals=True)
+
 
 class TournamentAdmin(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tournament_admins')
@@ -107,6 +119,10 @@ class TournamentMember(models.Model):
     is_substitute = models.BooleanField(
         default=False,
         help_text='Substitutes play in sessions but are excluded from standings',
+    )
+    in_finals = models.BooleanField(
+        default=False,
+        help_text='Included in the post-cutoff finals group',
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -180,3 +196,25 @@ class TournamentMemberTotal(models.Model):
 
     def __str__(self):
         return f"{self.member.name}: {self.total:.1f}"
+
+
+class TournamentMemberFinalsTotal(models.Model):
+    """Cached standing total for finals-group sessions (post-cutoff only)."""
+    member = models.OneToOneField(
+        TournamentMember,
+        on_delete=models.CASCADE,
+        related_name='finals_total_score',
+    )
+    total = models.FloatField(default=0.0)
+    games_played = models.IntegerField(default=0)
+    average_per_game = models.FloatField(default=0.0)
+    average_placement = models.FloatField(default=0.0)
+    chombo_count = models.IntegerField(default=0)
+    first_place_count = models.IntegerField(default=0)
+    second_place_count = models.IntegerField(default=0)
+    third_place_count = models.IntegerField(default=0)
+    fourth_place_count = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.member.name} (finals): {self.total:.1f}"

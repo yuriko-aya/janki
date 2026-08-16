@@ -51,6 +51,11 @@
                     {% endif %}
                 </dd>
 
+                {% if tournament.finals_cutoff %}
+                <dt style="font-weight: bold;">Finals Cutoff</dt>
+                <dd style="margin-bottom: 1rem;">Top {{ tournament.finals_cutoff }} players</dd>
+                {% endif %}
+
                 {% if substitutes %}
                 <dt style="font-weight: bold;">Substitutes</dt>
                 <dd style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">
@@ -97,7 +102,7 @@
     <div class="team-main-content">
         <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <div class="standings-header">
-                <h3 style="margin: 0;">Standings</h3>
+                <h3 style="margin: 0;">{% if tournament.finals_cutoff %}Overall Standings{% else %}Standings{% endif %}</h3>
                 <div class="standings-actions">
                     <a href="{% url 'taikai:session_list' slug=tournament.slug %}" class="btn" style="background-color: #9b59b6; color: white; padding: 6px 12px; font-size: 0.9rem;">Session Details</a>
                 </div>
@@ -125,7 +130,7 @@
                     {% for member in standings %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
-                        <td><a href="{% url 'taikai:member_detail' slug=tournament.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;"><strong>{{ member.shown_name }}</strong></a></td>
+                        <td><a href="{% url 'taikai:member_detail' slug=tournament.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;"><strong>{{ member.shown_name }}</strong></a>{% if member.in_finals %} <span style="color: #8e44ad; font-size: 0.85rem;">(finals)</span>{% endif %}</td>
                         <td style="text-align: right;">{{ member.total_score.games_played }}</td>
                         <td style="text-align: right; font-weight: bold; color: {% if member.total_score.total >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
                             {{ member.total_score.total|floatformat:1 }}
@@ -152,6 +157,62 @@
             <p style="color: #999; text-align: center; padding: 2rem;">No standings yet. Generate sessions and enter scores.</p>
             {% endif %}
         </div>
+
+        {% if tournament.finals_cutoff %}
+        <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 1.5rem;">
+            <h3 style="margin: 0;">Finals Standings (Top {{ tournament.finals_cutoff }})</h3>
+            <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Counts only sessions where all four players are in the finals group.</p>
+
+            {% if finals_standings %}
+            <div class="table-responsive">
+            <table style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th style="text-align: right;">Games</th>
+                        <th style="text-align: right;">Total</th>
+                        <th class="hide-mobile" style="text-align: right;">Avg</th>
+                        <th style="text-align: right;">Avg Pos</th>
+                        <th class="hide-tablet" style="text-align: center;">1st</th>
+                        <th class="hide-tablet" style="text-align: center;">2nd</th>
+                        <th class="hide-tablet" style="text-align: center;">3rd</th>
+                        <th class="hide-tablet" style="text-align: center;">4th</th>
+                        <th class="hide-mobile" style="text-align: center;">Chombo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in finals_standings %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><a href="{% url 'taikai:member_detail' slug=tournament.slug pk=member.pk %}" style="color: #2c3e50; text-decoration: none;"><strong>{{ member.shown_name }}</strong></a></td>
+                        <td style="text-align: right;">{{ member.finals_total_score.games_played }}</td>
+                        <td style="text-align: right; font-weight: bold; color: {% if member.finals_total_score.total >= 0 %}#27ae60{% else %}#e74c3c{% endif %};">
+                            {{ member.finals_total_score.total|floatformat:1 }}
+                        </td>
+                        <td class="hide-mobile" style="text-align: right;">{{ member.finals_total_score.average_per_game|floatformat:1 }}</td>
+                        <td style="text-align: right;">{% if member.finals_total_score.games_played > 0 %}{{ member.finals_total_score.average_placement|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.finals_total_score.first_place_count }}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.finals_total_score.second_place_count }}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.finals_total_score.third_place_count }}</td>
+                        <td class="hide-tablet" style="text-align: center;">{{ member.finals_total_score.fourth_place_count }}</td>
+                        <td class="hide-mobile" style="text-align: center;">
+                            {% if member.finals_total_score.chombo_count > 0 %}
+                                <span style="background-color: #e74c3c; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.9rem;">{{ member.finals_total_score.chombo_count }}</span>
+                            {% else %}
+                                <span style="color: #95a5a6;">0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <p style="color: #999; text-align: center; padding: 2rem;">No finals games yet. Create sessions with finals players only.</p>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 

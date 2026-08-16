@@ -13,6 +13,7 @@ from taikai.forms import (
     TournamentForm,
     TournamentMemberForm,
     GenerateSessionsForm,
+    FinalsCutoffForm,
     ManualSessionForm,
     TournamentSessionScoreForm,
     AddTournamentAdminForm,
@@ -23,7 +24,12 @@ from taikai.mixins import (
     TournamentSlugMixin,
 )
 from taikai.models import Tournament, TournamentMember, TournamentSession, TournamentAdmin
-from taikai.services.calculator import get_tournament_standings, get_tournament_member_game_history
+from taikai.services.calculator import (
+    get_tournament_standings,
+    get_tournament_finals_standings,
+    get_tournament_member_game_history,
+)
+from taikai.services.finals import apply_finals_cutoff, can_apply_finals_cutoff
 from taikai.services.session_generator import (
     generate_fixed_sessions,
     generate_next_rank_hanchan,
@@ -66,6 +72,7 @@ class TournamentDetailView(TournamentSlugMixin, TournamentContextMixin, DetailVi
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['standings'] = get_tournament_standings(self.tournament)
+        context['finals_standings'] = get_tournament_finals_standings(self.tournament)
         context['substitutes'] = self.tournament.members.filter(is_substitute=True)
         return context
 
@@ -277,6 +284,29 @@ class GenerateRankHanchanView(TournamentAdminRequiredMixin, View):
         return redirect('taikai:session_list', slug=self.tournament.slug)
 
 
+class ApplyFinalsCutoffView(TournamentAdminRequiredMixin, View):
+    """Apply a top-N finals cutoff after qualifier play."""
+
+    def post(self, request, *args, **kwargs):
+        form = FinalsCutoffForm(request.POST)
+        if not form.is_valid():
+            for error in form.errors.get('cutoff', form.non_field_errors()):
+                messages.error(request, error)
+            return redirect('taikai:session_list', slug=self.tournament.slug)
+
+        try:
+            count = apply_finals_cutoff(self.tournament, form.cleaned_data['cutoff'])
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect('taikai:session_list', slug=self.tournament.slug)
+
+        messages.success(
+            request,
+            f'Finals cutoff applied: top {count} players now have a separate finals standing.',
+        )
+        return redirect('taikai:session_list', slug=self.tournament.slug)
+
+
 class CreateManualSessionView(TournamentAdminRequiredMixin, TournamentContextMixin, FormView):
     template_name = 'taikai/session_create.html'
     form_class = ManualSessionForm
@@ -315,6 +345,10 @@ class TournamentSessionListView(TournamentSlugMixin, TournamentContextMixin, Det
         can_rank, rank_message = can_generate_next_rank_hanchan(self.tournament)
         context['can_generate_rank'] = can_rank
         context['rank_generate_message'] = rank_message
+        can_cutoff, cutoff_message = can_apply_finals_cutoff(self.tournament)
+        context['can_apply_cutoff'] = can_cutoff
+        context['cutoff_message'] = cutoff_message
+        context['cutoff_form'] = FinalsCutoffForm()
         return context
 
 

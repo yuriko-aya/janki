@@ -4,14 +4,19 @@ from taikai.models import Tournament, TournamentMember
 from taikai.services.calculator import get_standing_totals
 
 
-def member_choices_by_standings(tournament):
+def member_choices_by_standings(tournament, *, finals_only=False):
     """Build member dropdown choices sorted by standing total (substitutes last)."""
     totals = get_standing_totals(tournament)
-    members = list(tournament.roster_members())
+    if finals_only and tournament.finals_cutoff:
+        members = list(tournament.finals_members())
+    else:
+        members = list(tournament.roster_members())
 
     def sort_key(member):
         if member.is_substitute:
             return (1, member.name.lower())
+        if finals_only and not member.in_finals:
+            return (2, member.name.lower())
         data = totals.get(member.id, {'total': 0.0, 'games': 0})
         return (0, -data['total'], -data['games'], member.name.lower())
 
@@ -102,6 +107,26 @@ class GenerateSessionsForm(forms.Form):
     )
 
 
+class FinalsCutoffForm(forms.Form):
+    cutoff = forms.IntegerField(
+        min_value=4,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': 4,
+            'step': 4,
+            'style': 'width: 5rem; padding: 0.35rem 0.5rem;',
+            'placeholder': '8',
+        }),
+        help_text='Top N players (must be divisible by 4)',
+    )
+
+    def clean_cutoff(self):
+        cutoff = self.cleaned_data['cutoff']
+        if cutoff % 4 != 0:
+            raise forms.ValidationError('Cutoff must be divisible by 4 (tables seat 4 players).')
+        return cutoff
+
+
 class ManualSessionForm(forms.Form):
     """Create a single session by selecting four players."""
 
@@ -110,7 +135,8 @@ class ManualSessionForm(forms.Form):
     def __init__(self, tournament, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tournament = tournament
-        choices = member_choices_by_standings(tournament)
+        finals_only = bool(tournament.finals_cutoff)
+        choices = member_choices_by_standings(tournament, finals_only=finals_only)
         for i in range(self.seat_count):
             self.fields[f'member_{i}'] = forms.ChoiceField(
                 choices=choices,
@@ -128,6 +154,10 @@ class ManualSessionForm(forms.Form):
         valid_ids = set(self.tournament.members.values_list('id', flat=True))
         if not set(member_ids).issubset(valid_ids):
             raise forms.ValidationError('All players must be tournament members.')
+        if self.tournament.finals_cutoff:
+            finals_ids = set(self.tournament.finals_members().values_list('id', flat=True))
+            if not set(member_ids).issubset(finals_ids):
+                raise forms.ValidationError('All players must be in the finals cutoff group.')
         return cleaned
 
     def get_member_ids(self):

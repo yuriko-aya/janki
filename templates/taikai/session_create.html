@@ -5,7 +5,12 @@
 {% block content %}
 <h1>Create Session — {{ tournament.name }}</h1>
 <p><a href="{% url 'taikai:session_list' slug=tournament.slug %}">← Back to sessions</a></p>
-<p style="color: #666; font-size: 0.95rem;">Select four players for a new table. Members are sorted by current standing total.</p>
+<p style="color: #666; font-size: 0.95rem;">
+    Select four players for a new table. Members are sorted by current standing total.
+    {% if tournament.finals_cutoff %}
+        Only the top {{ tournament.finals_cutoff }} finals players are available.
+    {% endif %}
+</p>
 
 <div style="background: white; padding: 2rem; border-radius: 4px; max-width: 560px; margin-top: 1rem;">
     <form method="post">
