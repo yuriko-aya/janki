@@ -161,7 +161,7 @@
         {% if tournament.finals_cutoff %}
         <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 1.5rem;">
             <h3 style="margin: 0;">Finals Standings (Top {{ tournament.finals_cutoff }})</h3>
-            <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Counts only sessions where all four players are in the finals group.</p>
+            <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Counts only games played after cutoff (not qualifier/fixed hanchans).</p>
 
             {% if finals_standings %}
             <div class="table-responsive">

@@ -40,6 +40,11 @@ class Tournament(models.Model):
         blank=True,
         help_text='Top N players in finals after cutoff is applied (must be divisible by 4)',
     )
+    finals_start_order_index = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Sessions at or below this order_index do not count toward finals standings',
+    )
 
     hidden = models.BooleanField(default=False, db_index=True)
     sessions_generated = models.BooleanField(default=False)
