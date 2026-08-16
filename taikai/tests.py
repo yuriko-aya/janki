@@ -508,12 +508,24 @@ class FinalsCutoffTestCase(TestCase):
         self.assertEqual(len(finals_standings), 4)
         self.assertTrue(all(m.finals_total_score.games_played == 1 for m in finals_standings))
 
-    def test_finals_standing_excludes_pre_cutoff_sessions(self):
+    def test_backfill_legacy_cutoff_without_start_index(self):
         self._score_all_fixed()
         from taikai.services.finals import apply_finals_cutoff
         from taikai.services.calculator import get_tournament_finals_standings
 
         apply_finals_cutoff(self.tournament, 4)
+        # Simulate a tournament cut off before finals_start_order_index existed.
+        self.tournament.finals_start_order_index = None
+        self.tournament.save(update_fields=['finals_start_order_index'])
+        for member in self.tournament.finals_members():
+            member.finals_total_score.total = 99.0
+            member.finals_total_score.games_played = 5
+            member.finals_total_score.save()
+
+        get_tournament_finals_standings(self.tournament)
+        self.tournament.refresh_from_db()
+        self.assertIsNotNone(self.tournament.finals_start_order_index)
+
         finals_standings = get_tournament_finals_standings(self.tournament)
         for member in finals_standings:
             self.assertEqual(member.finals_total_score.games_played, 0)
