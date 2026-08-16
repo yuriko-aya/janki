@@ -71,6 +71,11 @@ class TournamentDetailView(TournamentSlugMixin, TournamentContextMixin, DetailVi
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        from taikai.services.finals import ensure_finals_cutoff_state
+
+        if self.tournament.finals_cutoff:
+            ensure_finals_cutoff_state(self.tournament)
+            self.tournament.refresh_from_db(fields=['finals_start_order_index'])
         context['standings'] = get_tournament_standings(self.tournament)
         context['finals_standings'] = get_tournament_finals_standings(self.tournament)
         context['substitutes'] = self.tournament.members.filter(is_substitute=True)

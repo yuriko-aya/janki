@@ -30,6 +30,34 @@ def can_apply_finals_cutoff(tournament):
     return True, 'Apply cutoff to split the top N into a separate finals standing.'
 
 
+def infer_finals_start_order_index(tournament):
+    """Best-effort start index for tournaments cut off before this field existed."""
+    if tournament.session_mode == Tournament.SessionMode.HYBRID:
+        max_order = (
+            tournament.sessions
+            .filter(hanchan_number__lte=tournament.fixed_hanchan_count)
+            .aggregate(m=Max('order_index'))['m']
+        )
+    else:
+        max_order = tournament.sessions.aggregate(m=Max('order_index'))['m']
+    return max_order if max_order is not None else -1
+
+
+def ensure_finals_cutoff_state(tournament):
+    """
+    Backfill finals_start_order_index and recalculate finals totals when missing.
+    Covers tournaments that had cutoff applied before the post-cutoff-only fix.
+    """
+    if not tournament.finals_cutoff or tournament.finals_start_order_index is not None:
+        return
+
+    tournament.finals_start_order_index = infer_finals_start_order_index(tournament)
+    tournament.save(update_fields=['finals_start_order_index', 'updated_at'])
+
+    from taikai.services.calculator import recalculate_tournament_finals_standings
+    recalculate_tournament_finals_standings(tournament)
+
+
 def clear_finals_cutoff(tournament):
     """Remove finals cutoff state (e.g. when regenerating fixed sessions)."""
     tournament.finals_cutoff = None

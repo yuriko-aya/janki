@@ -209,6 +209,14 @@ def recalculate_tournament(tournament):
         recalculate_session(session)
 
 
+def recalculate_tournament_finals_standings(tournament):
+    """Recompute cached finals totals for all finals-group members."""
+    if not tournament.finals_cutoff:
+        return
+    for member in tournament.finals_members():
+        recalculate_member_finals_total(member)
+
+
 def get_tournament_standings(tournament):
     """
     Return standing members sorted by total (desc), excluding substitutes.
@@ -228,8 +236,12 @@ def get_tournament_finals_standings(tournament):
     Return finals-group members sorted by finals total (desc).
     Only members with finals games_played > 0 are included.
     """
+    from taikai.services.finals import ensure_finals_cutoff_state
+
     if not tournament.finals_cutoff:
         return []
+
+    ensure_finals_cutoff_state(tournament)
 
     members = (
         tournament.finals_members()
