@@ -23,5 +23,6 @@ urlpatterns = [
     path('<slug:slug>/sessions/create/', views.CreateManualSessionView.as_view(), name='session_create'),
     path('<slug:slug>/sessions/generate/', views.GenerateSessionsView.as_view(), name='generate_sessions'),
     path('<slug:slug>/sessions/generate-rank/', views.GenerateRankHanchanView.as_view(), name='generate_rank_hanchan'),
+    path('<slug:slug>/sessions/apply-cutoff/', views.ApplyFinalsCutoffView.as_view(), name='apply_cutoff'),
     path('<slug:slug>/sessions/<int:pk>/edit/', views.TournamentSessionEditView.as_view(), name='session_edit'),
 ]

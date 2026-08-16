@@ -32,6 +32,20 @@
             <span style="color: #7f5a00; font-size: 0.95rem; align-self: center;">{{ rank_generate_message }}</span>
         {% endif %}
     {% endif %}
+    {% if can_apply_cutoff %}
+        <form method="post" action="{% url 'taikai:apply_cutoff' slug=tournament.slug %}" style="display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            {% csrf_token %}
+            <label for="id_cutoff" style="font-weight: 600; font-size: 0.95rem;">Apply Cutoff (top N):</label>
+            {{ cutoff_form.cutoff }}
+            <button type="submit" class="btn" style="background-color: #e67e22; color: white;">Apply Cutoff</button>
+        </form>
+    {% elif tournament.finals_cutoff %}
+        <span style="color: #8e44ad; font-size: 0.95rem; align-self: center; font-weight: 600;">
+            Finals cutoff active — top {{ tournament.finals_cutoff }} players
+        </span>
+    {% elif cutoff_message and is_tournament_admin %}
+        <span style="color: #7f5a00; font-size: 0.95rem; align-self: center;">{{ cutoff_message }}</span>
+    {% endif %}
 </div>
 {% endif %}
 

@@ -294,7 +294,9 @@ def generate_fixed_sessions(tournament):
     tournament.sessions.all().delete()
 
     from taikai.services.calculator import reset_tournament_standings
+    from taikai.services.finals import clear_finals_cutoff
     reset_tournament_standings(tournament)
+    clear_finals_cutoff(tournament)
 
     player_count = len(members)
     hanchan_count = tournament.fixed_hanchan_count
@@ -372,6 +374,11 @@ def generate_next_rank_hanchan(tournament):
     from taikai.services.calculator import get_standing_totals
 
     members = list(tournament.playing_members())
+    if tournament.finals_cutoff:
+        members = [m for m in members if m.in_finals]
+        if len(members) < 4:
+            raise ValueError('At least 4 finals players are required to generate rank hanchans.')
+
     max_h = _max_hanchan_number(tournament)
     order_index = _next_order_index(tournament)
 
@@ -424,6 +431,11 @@ def create_manual_session(tournament, member_ids):
     )
     if len(members) != 4:
         raise ValueError('Exactly 4 distinct players are required.')
+
+    if tournament.finals_cutoff:
+        finals_ids = set(tournament.finals_members().values_list('id', flat=True))
+        if not set(member_ids).issubset(finals_ids):
+            raise ValueError('All players must be in the finals cutoff group.')
 
     max_h = _max_hanchan_number(tournament)
     if max_h is None:

@@ -7,6 +7,7 @@ from taikai.models import (
     TournamentSession,
     TournamentSessionScore,
     TournamentMemberTotal,
+    TournamentMemberFinalsTotal,
 )
 
 
@@ -22,3 +23,4 @@ admin.site.register(TournamentMember)
 admin.site.register(TournamentSession)
 admin.site.register(TournamentSessionScore)
 admin.site.register(TournamentMemberTotal)
+admin.site.register(TournamentMemberFinalsTotal)
