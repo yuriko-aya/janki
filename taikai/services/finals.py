@@ -1,13 +1,10 @@
 """Finals cutoff: split top N into a separate standing after qualifier play."""
 
 from django.db import transaction
+from django.db.models import Max
 
 from taikai.models import Tournament, TournamentMember, TournamentMemberFinalsTotal
-from taikai.services.calculator import (
-    get_tournament_standings,
-    recalculate_member_finals_total,
-    session_counts_for_finals,
-)
+from taikai.services.calculator import get_tournament_standings
 from taikai.services.session_generator import is_hanchan_complete
 
 
@@ -36,7 +33,8 @@ def can_apply_finals_cutoff(tournament):
 def clear_finals_cutoff(tournament):
     """Remove finals cutoff state (e.g. when regenerating fixed sessions)."""
     tournament.finals_cutoff = None
-    tournament.save(update_fields=['finals_cutoff', 'updated_at'])
+    tournament.finals_start_order_index = None
+    tournament.save(update_fields=['finals_cutoff', 'finals_start_order_index', 'updated_at'])
     tournament.standing_members().update(in_finals=False)
     TournamentMemberFinalsTotal.objects.filter(member__tournament=tournament).delete()
 
@@ -84,18 +82,15 @@ def apply_finals_cutoff(tournament, cutoff):
     top_members = standings[:cutoff]
     top_ids = [m.id for m in top_members]
 
+    max_order = tournament.sessions.aggregate(m=Max('order_index'))['m']
+
     tournament.finals_cutoff = cutoff
-    tournament.save(update_fields=['finals_cutoff', 'updated_at'])
+    tournament.finals_start_order_index = max_order if max_order is not None else -1
+    tournament.save(update_fields=['finals_cutoff', 'finals_start_order_index', 'updated_at'])
 
     tournament.standing_members().update(in_finals=False)
     TournamentMember.objects.filter(id__in=top_ids).update(in_finals=True)
 
     reset_finals_standings(tournament)
-
-    # Re-score any existing all-finals sessions (unlikely before cutoff, but safe).
-    for session in tournament.sessions.prefetch_related('scores__member').all():
-        if session_counts_for_finals(session):
-            for score in session.scores.all():
-                recalculate_member_finals_total(score.member)
 
     return len(top_ids)

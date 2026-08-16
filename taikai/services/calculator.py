@@ -17,7 +17,13 @@ from taikai.services.session_generator import is_session_scored
 
 
 def session_counts_for_finals(session):
-    """True when all four seated players are in the finals group."""
+    """True when session is post-cutoff and all four seated players are in finals."""
+    tournament = session.tournament
+    if not tournament.finals_cutoff:
+        return False
+    start_index = tournament.finals_start_order_index
+    if start_index is not None and session.order_index <= start_index:
+        return False
     scores = list(session.scores.select_related('member').all())
     if len(scores) != 4:
         return False

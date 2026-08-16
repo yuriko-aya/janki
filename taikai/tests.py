@@ -508,6 +508,17 @@ class FinalsCutoffTestCase(TestCase):
         self.assertEqual(len(finals_standings), 4)
         self.assertTrue(all(m.finals_total_score.games_played == 1 for m in finals_standings))
 
+    def test_finals_standing_excludes_pre_cutoff_sessions(self):
+        self._score_all_fixed()
+        from taikai.services.finals import apply_finals_cutoff
+        from taikai.services.calculator import get_tournament_finals_standings
+
+        apply_finals_cutoff(self.tournament, 4)
+        finals_standings = get_tournament_finals_standings(self.tournament)
+        for member in finals_standings:
+            self.assertEqual(member.finals_total_score.games_played, 0)
+            self.assertEqual(member.finals_total_score.total, 0.0)
+
     @override_settings(STORAGES=_test_storages)
     def test_manual_session_form_limited_to_finals(self):
         self._score_all_fixed()
