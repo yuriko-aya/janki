@@ -54,6 +54,17 @@ class HomePageTestCase(TestCase):
         self.assertContains(response, 'name="google-site-verification"')
         self.assertContains(response, 'content="test-verification-token"')
 
+    @override_settings(STORAGES=_test_storages, GA4_MEASUREMENT_ID='')
+    def test_ga4_script_omitted_when_unconfigured(self):
+        response = self.client.get(reverse('home'))
+        self.assertNotContains(response, 'googletagmanager.com/gtag/js')
+
+    @override_settings(STORAGES=_test_storages, GA4_MEASUREMENT_ID='G-TEST123456')
+    def test_ga4_script_included_when_configured(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'googletagmanager.com/gtag/js?id=G-TEST123456')
+        self.assertContains(response, "gtag('config', 'G-TEST123456')")
+
 
 class SitemapTestCase(TestCase):
     _test_storages = {
