@@ -174,6 +174,9 @@ APP_NAME = 'Janki Mahjong Score Tracker'
 # Google Search Console domain verification (optional meta tag content value)
 GOOGLE_SITE_VERIFICATION = env('GOOGLE_SITE_VERIFICATION', default='')
 
+# Google Analytics 4 (optional; set measurement ID like G-XXXXXXXXXX)
+GA4_MEASUREMENT_ID = env('GA4_MEASUREMENT_ID', default='')
+
 # Email Configuration
 EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = env('SMTP_SERVER', default='localhost')
