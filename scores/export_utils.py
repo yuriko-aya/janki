@@ -94,7 +94,7 @@ def export_standings_to_csv(team, standings, month=None, year=None, is_yearly=Fa
             # Use yearly stats
             writer.writerow([
                 rank,
-                member.name,
+                member.shown_name,
                 member.yearly_games,
                 f"{member.yearly_total:.2f}",
                 '',  # Placeholder for Best 5 Consecutive (not calculated in this example)
@@ -110,7 +110,7 @@ def export_standings_to_csv(team, standings, month=None, year=None, is_yearly=Fa
             # Use monthly stats
             writer.writerow([
                 rank,
-                member.name,
+                member.shown_name,
                 member.monthly_games,
                 f"{member.monthly_total:.2f}",
                 f"{member.monthly_best_five:.2f}" if member.monthly_best_five else '',
@@ -202,7 +202,7 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
             # Use yearly stats
             data.append([
                 str(rank),
-                member.name,
+                member.shown_name,
                 str(member.yearly_games),
                 f"{member.yearly_total:.1f}",
                 "",
@@ -218,7 +218,7 @@ def export_standings_to_pdf(team, standings, month=None, year=None, is_yearly=Fa
             # Use monthly stats
             data.append([
                 str(rank),
-                member.name,
+                member.shown_name,
                 str(member.monthly_games),
                 f"{member.monthly_total:.1f}",
                 f"{member.monthly_best_five:.1f}" if member.monthly_best_five else '-',
