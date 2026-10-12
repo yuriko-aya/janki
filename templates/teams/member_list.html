@@ -13,20 +13,28 @@
     </div>
 </div>
 
-{% if team.members.all %}
+{% if members %}
     <div style="background-color: white; padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow-x: auto;">
         <table>
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Display name</th>
                     <th>Linked Account</th>
                     <th style="width: 150px;">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for member in team.members.all|dictsort:"name" %}
+                {% for member in members %}
                     <tr>
                         <td><strong>{{ member.name }}</strong></td>
+                        <td>
+                            {% if member.display_name %}
+                                {{ member.display_name }}
+                            {% else %}
+                                <span style="color: #95a5a6;">—</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if member.player.user %}
                                 {{ member.player.user.username }}

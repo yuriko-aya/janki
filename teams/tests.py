@@ -208,3 +208,17 @@ class TeamAdminAccessTestCase(TestCase):
         self.client.login(username='admin', password='pass')
         response = self.client.get(self.members_url)
         self.assertEqual(response.status_code, 200)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_member_list_shows_display_name(self):
+        player = Player.objects.create(name='Alice')
+        Member.objects.create(
+            team=self.team,
+            player=player,
+            name='Alice',
+            display_name='Alice A.',
+        )
+        self.client.login(username='admin', password='pass')
+        response = self.client.get(self.members_url)
+        self.assertContains(response, 'Display name')
+        self.assertContains(response, 'Alice A.')
