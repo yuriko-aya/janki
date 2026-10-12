@@ -112,6 +112,13 @@ class MemberListView(TeamAdminRequiredMixin, DetailView):
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['members'] = (
+            self.object.members.select_related('player', 'player__user').order_by('name')
+        )
+        return context
+
 
 class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
     """Add a new member to a team (admin-only)."""
