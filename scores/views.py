@@ -46,7 +46,7 @@ class SessionSubmitView(TeamAdminRequiredMixin, TeamContextMixin, FormView):
     
     def form_valid(self, form):
         now = datetime.now()
-        session_id = now.strftime("%Y-%m-%d %H:%M")
+        session_id = now.strftime("%Y-%m-%d %H:%M:%S")
         session_date = now.date()
 
         # Prepare score data
