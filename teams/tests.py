@@ -55,6 +55,25 @@ class PlayerModelTestCase(TestCase):
         self.assertTrue(rejected)
         self.assertIsNone(player)
 
+    def test_resolve_player_for_web_case_insensitive_name(self):
+        self.player.name = 'Tata'
+        self.player.save(update_fields=['name'])
+        self.member_a.name = 'Tata'
+        self.member_a.save(update_fields=['name'])
+        player, needs_confirmation, teams, rejected = resolve_player_for_web_new_member(
+            'tata', self.team_b, confirm_same_player=None
+        )
+        self.assertTrue(needs_confirmation)
+        self.assertEqual(teams, ['Team A'])
+
+    def test_resolve_player_for_api_case_insensitive_name(self):
+        self.player.name = 'Tata'
+        self.player.save(update_fields=['name'])
+        self.member_a.name = 'Tata'
+        self.member_a.save(update_fields=['name'])
+        player = resolve_player_for_api_new_member('tata', self.team_b)
+        self.assertEqual(player, self.player)
+
 
 class MemberCreateViewTestCase(TestCase):
     _test_storages = _test_storages

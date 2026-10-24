@@ -8,9 +8,9 @@ from teams.models import Member, Player
 
 
 def find_members_with_name_elsewhere(name, team):
-    """Return members with the same name on other teams."""
+    """Return members with the same name on other teams (case-insensitive)."""
     return (
-        Member.objects.filter(name=name)
+        Member.objects.filter(name__iexact=name)
         .exclude(team=team)
         .select_related('team', 'player')
         .order_by('team__name')
