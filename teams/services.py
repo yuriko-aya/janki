@@ -12,9 +12,22 @@ def find_members_with_name_elsewhere(name, team):
     return (
         Member.objects.filter(name__iexact=name)
         .exclude(team=team)
-        .select_related('team', 'player')
+        .select_related('team', 'player', 'player__user')
         .order_by('team__name')
     )
+
+
+def linked_user_from_same_name_elsewhere(member):
+    """
+    Username linked to a same-name member on another team when this member's
+    Player is not linked yet (split roster entries before merge).
+    """
+    if not member.player_id or member.player.user_id:
+        return None
+    for other in find_members_with_name_elsewhere(member.name, member.team):
+        if other.player_id != member.player_id and other.player.user_id:
+            return other.player.user.username
+    return None
 
 
 def existing_team_names_for_member(name, team):

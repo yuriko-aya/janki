@@ -21,6 +21,12 @@
             <div class="form-group">
                 {{ field.label_tag }}
                 {{ field }}
+                {% if field.name == 'linked_username' and linked_user_elsewhere %}
+                    <p style="color: #666; font-size: 0.9rem; margin-top: 0.35rem;">
+                        Linked on another team as <strong>{{ linked_user_elsewhere }}</strong>.
+                        Use &ldquo;same player&rdquo; when changing the roster name to merge entries and share this account.
+                    </p>
+                {% endif %}
                 {% if field.help_text %}
                     <p style="color: #666; font-size: 0.9rem; margin-top: 0.35rem;">{{ field.help_text }}</p>
                 {% endif %}
@@ -35,7 +41,7 @@
         {% endfor %}
         
         <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-            {% if show_duplicate_warning %}
+            {% if show_duplicate_warning|default:False %}
                 <div style="width: 100%; margin-bottom: 1rem; padding: 1rem; background-color: #fff8e6; border: 1px solid #f39c12; border-radius: 4px;">
                     <p style="margin: 0 0 0.75rem 0; color: #7f5a00;">
                         This member already exists in these teams:

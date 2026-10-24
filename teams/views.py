@@ -18,6 +18,7 @@ from teams.mixins import TeamAdminRequiredMixin, TeamSlugMixin, TeamContextMixin
 from teams.services import (
     apply_member_user_link,
     find_members_with_name_elsewhere,
+    linked_user_from_same_name_elsewhere,
     resolve_player_for_web_new_member,
 )
 from accounts.models import TeamAdmin
@@ -166,15 +167,6 @@ class MemberCreateView(TeamAdminRequiredMixin, TeamContextMixin, CreateView):
         member.team = self.team
         member.player = player
         member.save()
-        try:
-            apply_member_user_link(member, form.cleaned_data.get('linked_username', ''))
-        except ValidationError as exc:
-            player_to_cleanup = member.player
-            member.delete()
-            if player_to_cleanup.members.count() == 0:
-                player_to_cleanup.delete()
-            form.add_error('linked_username', exc.messages[0] if exc.messages else str(exc))
-            return self.form_invalid(form)
         messages.success(request, f"Member '{member.name}' added successfully.")
         return redirect('teams:member_list', slug=self.team.slug)
 
@@ -184,7 +176,10 @@ class MemberUpdateView(LoginRequiredMixin, UpdateView):
     model = Member
     form_class = MemberForm
     template_name = 'teams/member_form.html'
-    
+
+    def get_queryset(self):
+        return Member.objects.select_related('player', 'player__user')
+
     def dispatch(self, request, *args, **kwargs):
         member = self.get_object()
         self.team_slug = member.team.slug
@@ -200,7 +195,9 @@ class MemberUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['team'] = self.get_object().team
+        member = self.object if hasattr(self, 'object') and self.object else self.get_object()
+        context['team'] = member.team
+        context['linked_user_elsewhere'] = linked_user_from_same_name_elsewhere(member)
         return context
 
     def form_valid(self, form):
