@@ -97,8 +97,21 @@ class MemberForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.team = kwargs.pop('team', None)
         super().__init__(*args, **kwargs)
-        if self.instance.pk and self.instance.player_id and self.instance.player.user_id:
-            self.fields['linked_username'].initial = self.instance.player.user.username
+        if not self.instance.pk:
+            del self.fields['linked_username']
+            return
+        username = self._linked_username_for_instance()
+        if username:
+            self.fields['linked_username'].initial = username
+
+    def _linked_username_for_instance(self):
+        """Username linked to this member's player (shared across all team memberships)."""
+        if not self.instance.player_id:
+            return ''
+        player = self.instance.player
+        if player.user_id:
+            return player.user.username
+        return ''
 
     def clean_name(self):
         name = self.cleaned_data.get('name', '')

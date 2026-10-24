@@ -112,6 +112,14 @@ class MemberCreateViewTestCase(TestCase):
         self.assertEqual(member.player, member_a.player)
 
     @override_settings(STORAGES=_test_storages)
+    def test_create_member_form_hides_user_link_field(self):
+        self.client.login(username='admin', password='pass')
+        url = reverse('teams:member_create', kwargs={'slug': self.team_b.slug})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Link to user account')
+
+    @override_settings(STORAGES=_test_storages)
     def test_create_member_confirm_different_requires_new_name(self):
         self.client.login(username='admin', password='pass')
         url = reverse('teams:member_create', kwargs={'slug': self.team_b.slug})
@@ -190,6 +198,39 @@ class PlayerUserLinkTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.player.refresh_from_db()
         self.assertEqual(self.player.user, self.other_user)
+
+    @override_settings(STORAGES=_test_storages)
+    def test_edit_shows_linked_user_when_player_shared_across_teams(self):
+        from accounts.models import TeamAdmin
+        from teams.services import link_player_to_user
+        team_b = Team.objects.create(name='Team B', slug='team-b-shared')
+        admin = User.objects.create_user(username='admin2', password='pass')
+        TeamAdmin.objects.create(user=admin, team=team_b)
+        link_player_to_user(self.player, self.user)
+        member_b = Member.objects.create(team=team_b, name='Alice', player=self.player)
+
+        self.client.force_login(admin)
+        response = self.client.get(reverse('teams:member_update', kwargs={'pk': member_b.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="alice"')
+
+    @override_settings(STORAGES=_test_storages)
+    def test_edit_shows_linked_user_hint_when_roster_split(self):
+        from accounts.models import TeamAdmin
+        from teams.services import link_player_to_user
+        team_b = Team.objects.create(name='Team B', slug='team-b-split')
+        admin = User.objects.create_user(username='admin3', password='pass')
+        TeamAdmin.objects.create(user=admin, team=team_b)
+        player_b = Player.objects.create(name='tata')
+        Member.objects.create(team=self.team, name='Tata', player=self.player)
+        link_player_to_user(self.player, self.user)
+        member_b = Member.objects.create(team=team_b, name='tata', player=player_b)
+
+        self.client.force_login(admin)
+        response = self.client.get(reverse('teams:member_update', kwargs={'pk': member_b.pk}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Linked on another team')
+        self.assertContains(response, 'alice')
 
 
 class TeamAdminAccessTestCase(TestCase):
